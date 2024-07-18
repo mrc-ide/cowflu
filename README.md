@@ -14,6 +14,14 @@ To install `cowflu`:
 remotes::install_github("mrc-ide/cowflu", upgrade = FALSE)
 ```
 
+## Development
+
+You will need `cpp11`, `decor`, and `brio` installed too.
+
+* Make changes to the model at [`inst/dust/cows.cpp`]
+* Run `dust2::dust_package(".")`
+*
+
 ## License
 
 MIT © Imperial College of Science, Technology and Medicine

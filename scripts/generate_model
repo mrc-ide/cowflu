@@ -1,0 +1,2 @@
+#!/usr/bin/env Rscript
+dust2::dust_package(".")
