@@ -22,6 +22,9 @@ README.md: README.Rmd
 	sed -i.bak 's/[[:space:]]*$$//' README.md
 	rm -f $@.bak
 
+src/cows.cpp: inst/dust/cows.cpp
+	Rscript -e 'dust2::dust_package(".")'
+
 check:
 	_R_CHECK_CRAN_INCOMING_=FALSE make check_all
 

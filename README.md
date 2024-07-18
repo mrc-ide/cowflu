@@ -18,9 +18,11 @@ remotes::install_github("mrc-ide/cowflu", upgrade = FALSE)
 
 You will need `cpp11`, `decor`, and `brio` installed too.
 
-* Make changes to the model at [`inst/dust/cows.cpp`]
-* Run `dust2::dust_package(".")`
-*
+1. Make changes to the model at [`inst/dust/cows.cpp`]
+2. Run `dust2::dust_package(".")`
+3. Run the tests with `devtools::test()` (once they exist!)
+
+If you are set up with a command line, you can `make src/cows.cpp` instead of the second step.
 
 ## License
 
