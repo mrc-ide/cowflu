@@ -151,7 +151,7 @@ public:
         const real_type u2 = mcstate::random::random_real<real_type>(rng_state);
         const size_t i_dst = shared.region_start[i_region_src] + std::floor(u2 * (shared.region_start[i_region_src + 1] - shared.region_start[i_region_src]));
         const bool allow_movement = within_state || state_travel_allowed ||
-          mcstate::random::hypergeometric(rng_state, internal.export_I[i_src], export_N - internal.export_I[i_src], shared.n_test) == 0;
+          mcstate::random::hypergeometric(rng_state, internal.export_I[i_src], export_N - internal.export_I[i_src], std::min(shared.n_test, internal.export_I[i_src])) == 0;
         if (allow_movement) {
           internal.import_S[i_dst] += internal.export_S[i_src];
           internal.import_E[i_dst] += internal.export_E[i_src];
