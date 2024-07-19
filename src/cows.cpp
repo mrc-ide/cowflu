@@ -37,7 +37,6 @@ public:
     std::vector<real_type> export_E;
     std::vector<real_type> export_I;
     std::vector<real_type> export_R;
-    std::vector<real_type> export_N;
     std::vector<real_type> import_S;
     std::vector<real_type> import_E;
     std::vector<real_type> import_I;
@@ -168,8 +167,9 @@ public:
     const size_t n_regions = dust2::r::read_size(pars, "n_regions");
     std::vector<size_t> region_start(n_regions + 1);
     auto r_region_start = pars["region_start"];
+    const int * region_start_data = INTEGER(r_region_start);
     for (size_t i = 0; i < n_regions; ++i) {
-      region_start[i] = INTEGER(r_region_start)[i] - 1;
+      region_start[i] = region_start_data[i];
     }
     region_start[n_regions] = n_herds;
 
@@ -179,6 +179,10 @@ public:
       for (size_t j = region_start[i]; j < region_start[i + 1]; ++j) {
         herd_to_region_lookup.push_back(i);
       }
+    }
+
+    if (herd_to_region_lookup.size() != n_herds) {
+      cpp11::stop("Error while building lookup");
     }
 
     std::vector<real_type> p_region_export(n_regions);
