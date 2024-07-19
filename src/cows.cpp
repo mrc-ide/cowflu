@@ -24,7 +24,10 @@ public:
     std::vector<size_t> herd_to_region_lookup;
     std::vector<real_type> p_region_export;
     std::vector<real_type> p_cow_export;
+    std::vector<real_type> mean_herd_size;
     std::vector<real_type> movement_matrix;
+    real_type start_count;
+    size_t start_region;
   };
 
   struct internal_state {
@@ -57,7 +60,25 @@ public:
                       internal_state& internal,
                       rng_state_type& rng_state,
                       real_type * state_next) {
+    // Start by zeroing everything
     std::fill(state_next, state_next + size_state(shared), 0);
+    // Then fill in susceptibles from the mean herd size
+    //
+    // Thom: should this be drawn from some distribution?  If so that
+    // obviously causes a little grief with the seeding as we can't
+    // absolutely guarantee that there enough cows to infect.
+    auto *S = state_next;
+    auto *I = state_next + shared.n_herds;
+    for (size_t i = 0; i < shared.n_herds; ++i) {
+      const auto j = shared.herd_to_region_lookup[i];
+      S[i] = ceil(shared.mean_herd_size[j]);
+    }
+    // Seed the infections into the I class
+    //
+    // Thom: should this go into E rather than I?
+    const auto i_start = shared.herd_to_region_lookup[shared.start_region];
+    I[i_start] = shared.start_count;
+    S[i_start] -= shared.start_count;
   }
 
   // The main update function, converting state to state_next
@@ -162,8 +183,10 @@ public:
 
     std::vector<real_type> p_region_export(n_regions);
     std::vector<real_type> p_cow_export(n_regions);
+    std::vector<real_type> mean_herd_size(n_regions);
     dust2::r::read_real_vector(pars, n_regions, p_region_export.data(), "p_region_export", true);
     dust2::r::read_real_vector(pars, n_regions, p_cow_export.data(), "p_cow_export", true);
+    dust2::r::read_real_vector(pars, n_regions, mean_herd_size.data(), "mean_herd_size", true);
 
     std::vector<real_type> movement_matrix(n_regions * n_regions);
     dust2::r::read_real_vector(pars, n_regions * n_regions, movement_matrix.data(), "movement_matrix", true);
@@ -172,7 +195,7 @@ public:
       const real_type tot = std::accumulate(it + i * n_regions,
                                             it + (i + 1)* n_regions,
                                             0);
-      for (size_t j = 0; j < n_regions; ++i) {
+      for (size_t j = 0; j < n_regions; ++j) {
         if (j != 0) {
           *(it + j) += *(it + j - 1);
         }
@@ -183,11 +206,15 @@ public:
     const real_type time_test = dust2::r::read_real(pars, "time_test", 30);
     const real_type n_test = dust2::r::read_real(pars, "n_test", 30);
 
+    const real_type start_count = dust2::r::read_real(pars, "start_count");
+    const size_t start_region = dust2::r::read_size(pars, "start_region") - 1;
+
     const real_type beta = dust2::r::read_real(pars, "beta");
     const real_type gamma = dust2::r::read_real(pars, "gamma");
     const real_type alpha = dust2::r::read_real(pars, "alpha");
     const real_type sigma = dust2::r::read_real(pars, "sigma");
-    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, movement_matrix};
+
+    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, mean_herd_size, movement_matrix, start_count, start_region};
   }
 
   static internal_state build_internal(const shared_state& shared) {
