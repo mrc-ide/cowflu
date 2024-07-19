@@ -14,6 +14,7 @@ RoxygenNote: 7.3.1
 URL: https://mrc-ide.github.io/cowflu https://github.com/mrc-ide/cowflu
 BugReports: https://github.com/mrc-ide/cowflu/issues
 Imports:
+    cli,
     dust2
 LinkingTo:
     cpp11,
@@ -22,6 +23,6 @@ LinkingTo:
 Suggests:
     testthat (>= 3.0.0)
 Remotes:
-    mrc-ide/dust2
+    mrc-ide/dust2@mrc-5539
 Config/testthat/edition: 3
 Language: en-GB
