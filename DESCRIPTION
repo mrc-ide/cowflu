@@ -23,6 +23,6 @@ LinkingTo:
 Suggests:
     testthat (>= 3.0.0)
 Remotes:
-    mrc-ide/dust2@mrc-5539
+    mrc-ide/dust2
 Config/testthat/edition: 3
 Language: en-GB
