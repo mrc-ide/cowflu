@@ -75,7 +75,7 @@ public:
     // Seed the infections into the I class
     //
     // Thom: should this go into E rather than I?
-    const auto i_start = shared.herd_to_region_lookup[shared.start_region];
+    const auto i_start = shared.region_start[shared.start_region];
     I[i_start] = shared.start_count;
     S[i_start] -= shared.start_count;
   }
@@ -124,33 +124,40 @@ public:
       }
     }
 
-    // Above, we change the populations (we do this BEFORE calculating import/exports)
-    for (size_t i = 0; i < shared.n_herds; ++i) {
-      const auto j = shared.herd_to_region_lookup[i];
-      if (mcstate::random::random_real<real_type>(rng_state) < shared.p_region_export[j]) {
-        internal.export_S[i] = mcstate::random::binomial<real_type>(rng_state, S_next[i], shared.p_cow_export[j]);
-        internal.export_E[i] = mcstate::random::binomial<real_type>(rng_state, E_next[i], shared.p_cow_export[j]);
-        internal.export_I[i] = mcstate::random::binomial<real_type>(rng_state, I_next[i], shared.p_cow_export[j]);
-        internal.export_R[i] = mcstate::random::binomial<real_type>(rng_state, R_next[i], shared.p_cow_export[j]);
-      }
-    }
-
-    const auto state_travel_allowed = time < shared.time_test;
+    std::fill(internal.export_S.begin(), internal.export_S.end(), 0);
+    std::fill(internal.export_E.begin(), internal.export_E.end(), 0);
+    std::fill(internal.export_I.begin(), internal.export_I.end(), 0);
+    std::fill(internal.export_R.begin(), internal.export_R.end(), 0);
     std::fill(internal.import_S.begin(), internal.import_S.end(), 0);
     std::fill(internal.import_E.begin(), internal.import_E.end(), 0);
     std::fill(internal.import_I.begin(), internal.import_I.end(), 0);
     std::fill(internal.import_R.begin(), internal.import_R.end(), 0);
+
+    // Above, we change the populations (we do this BEFORE calculating import/exports)
+    for (size_t i = 0; i < shared.n_herds; ++i) {
+      const auto j = shared.herd_to_region_lookup[i];
+      const auto export_cows = mcstate::random::random_real<real_type>(rng_state) < shared.p_region_export[j] * dt;
+      if (export_cows) {
+        const auto p_cow_export = shared.p_cow_export[j] * dt;
+        internal.export_S[i] = mcstate::random::binomial<real_type>(rng_state, S_next[i], p_cow_export);
+        internal.export_E[i] = mcstate::random::binomial<real_type>(rng_state, E_next[i], p_cow_export);
+        internal.export_I[i] = mcstate::random::binomial<real_type>(rng_state, I_next[i], p_cow_export);
+        internal.export_R[i] = mcstate::random::binomial<real_type>(rng_state, R_next[i], p_cow_export);
+      }
+    }
+
+    const auto state_travel_allowed = time < shared.time_test;
     for (size_t i_src = 0; i_src < shared.n_herds; ++i_src) {
       const size_t export_N = internal.export_S[i_src] + internal.export_E[i_src] + internal.export_I[i_src] + internal.export_R[i_src];
       if (export_N > 0) {
         const size_t i_region_src = shared.herd_to_region_lookup[i_src];
         const auto p = shared.movement_matrix.begin() + i_region_src * shared.n_regions;
         const real_type u1 = mcstate::random::random_real<real_type>(rng_state);
-        const size_t i_region_dst = std::binary_search(p, p + shared.n_regions, u1);
-        const auto within_state = i_region_src == i_region_dst;
+        const size_t i_region_dst = std::distance(p, std::upper_bound(p, p + shared.n_regions, u1));
+        const auto within_region = i_region_src == i_region_dst;
         const real_type u2 = mcstate::random::random_real<real_type>(rng_state);
-        const size_t i_dst = shared.region_start[i_region_src] + std::floor(u2 * (shared.region_start[i_region_src + 1] - shared.region_start[i_region_src]));
-        const bool allow_movement = within_state || state_travel_allowed ||
+        const size_t i_dst = shared.region_start[i_region_dst] + std::floor(u2 * (shared.region_start[i_region_dst + 1] - shared.region_start[i_region_dst]));
+        const bool allow_movement = within_region || state_travel_allowed ||
           mcstate::random::hypergeometric(rng_state, internal.export_I[i_src], export_N - internal.export_I[i_src], std::min(shared.n_test, internal.export_I[i_src])) == 0;
         if (allow_movement) {
           internal.import_S[i_dst] += internal.export_S[i_src];
@@ -159,6 +166,13 @@ public:
           internal.import_R[i_dst] += internal.export_R[i_src];
         }
       }
+    }
+
+    for (size_t i = 0; i < shared.n_herds; ++i) {
+      S_next[i] = S_next[i] + internal.import_S[i] - internal.export_S[i];
+      E_next[i] = E_next[i] + internal.import_E[i] - internal.export_E[i];
+      I_next[i] = I_next[i] + internal.import_I[i] - internal.export_I[i];
+      R_next[i] = R_next[i] + internal.import_R[i] - internal.export_R[i];
     }
   }
 
@@ -194,18 +208,6 @@ public:
 
     std::vector<real_type> movement_matrix(n_regions * n_regions);
     dust2::r::read_real_vector(pars, n_regions * n_regions, movement_matrix.data(), "movement_matrix", true);
-    for (size_t i = 0; i < n_regions; ++i) {
-      auto it = movement_matrix.begin();
-      const real_type tot = std::accumulate(it + i * n_regions,
-                                            it + (i + 1)* n_regions,
-                                            0);
-      for (size_t j = 0; j < n_regions; ++j) {
-        if (j != 0) {
-          *(it + j) += *(it + j - 1);
-        }
-        *(it + j) /= tot;
-      }
-    }
 
     const real_type time_test = dust2::r::read_real(pars, "time_test", 30);
     const real_type n_test = dust2::r::read_real(pars, "n_test", 30);

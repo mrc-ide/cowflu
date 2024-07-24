@@ -37,15 +37,18 @@ cowflu_fixed_inputs <- function(n_herds_per_region, p_region_export,
       "Expected rows of 'movement_matrix' to sum to 1",
       i = "Check rows {which(err)}")
   }
+  movement_matrix_cumulative <- apply(movement_matrix, 1, cumsum)
+
   list(n_herds = n_herds,
        n_regions = n_regions,
        region_start = region_start,
        p_region_export = p_region_export,
        p_cow_export = p_cow_export,
        mean_herd_size = mean_herd_size,
-       movement_matrix = t(movement_matrix),
+       movement_matrix = movement_matrix_cumulative,
        start_region = start_region,
        start_count = start_count,
+       index = rep(seq_along(n_herds_per_region), n_herds_per_region),
        time_test = time_test,
        n_test = n_test)
 }
