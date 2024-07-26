@@ -15,7 +15,8 @@ URL: https://mrc-ide.github.io/cowflu https://github.com/mrc-ide/cowflu
 BugReports: https://github.com/mrc-ide/cowflu/issues
 Imports:
     cli,
-    dust2
+    dust2,
+    dplyr
 LinkingTo:
     cpp11,
     dust2,
