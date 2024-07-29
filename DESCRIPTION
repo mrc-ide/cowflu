@@ -16,7 +16,9 @@ BugReports: https://github.com/mrc-ide/cowflu/issues
 Imports:
     cli,
     dust2,
-    dplyr
+    tidyverse,
+    reshape2,
+    magrittr
 LinkingTo:
     cpp11,
     dust2,
