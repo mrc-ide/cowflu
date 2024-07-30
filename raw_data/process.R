@@ -29,7 +29,7 @@ real_dairy_populations <- function(root) {
   farms_data$Value <- as.numeric(gsub(",", "", farms_data$Value))
 
   # How many farms in total?
-  N_herds <- sum(farms_data$Value)
+  n_herds <- sum(farms_data$Value)
 
   # How many farms per region?
   US_States <- unique(cows_data$State)
@@ -40,7 +40,7 @@ real_dairy_populations <- function(root) {
   region_start <- as.integer(c(0, cumsum(n_herds_per_region)))
 
   # How many cows per farm?
-  n_cows_per_herd <- rep(NA,N_herds)
+  n_cows_per_herd <- rep(NA, n_herds)
   # For each US State we calculate:
   for (i in seq_along(US_States)) {
     state_farm_data <- dplyr::filter(farms_data, State == US_States[i])
@@ -70,7 +70,7 @@ real_dairy_populations <- function(root) {
 
   # Return the data of interest in a list
   list(US_States = US_States,
-       N_herds = N_herds,
+       n_herds = n_herds,
        n_herds_per_region = n_herds_per_region,
        region_start = region_start,
        n_cows_per_herd = n_cows_per_herd)
