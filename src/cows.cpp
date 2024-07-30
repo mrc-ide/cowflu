@@ -24,7 +24,7 @@ public:
     std::vector<size_t> herd_to_region_lookup;
     std::vector<real_type> p_region_export;
     std::vector<real_type> p_cow_export;
-    std::vector<real_type> mean_herd_size;
+    std::vector<real_type> n_cows_per_herd;
     std::vector<real_type> movement_matrix;
     real_type start_count;
     size_t start_region;
@@ -68,10 +68,7 @@ public:
     // absolutely guarantee that there enough cows to infect.
     auto *S = state_next;
     auto *I = state_next + shared.n_herds;
-    for (size_t i = 0; i < shared.n_herds; ++i) {
-      const auto j = shared.herd_to_region_lookup[i];
-      S[i] = ceil(shared.mean_herd_size[j]);
-    }
+    std::copy(shared.n_cows_per_herd.begin(), shared.n_cows_per_herd.end(), S);
     // Seed the infections into the I class
     //
     // Thom: should this go into E rather than I?
@@ -201,10 +198,10 @@ public:
 
     std::vector<real_type> p_region_export(n_regions);
     std::vector<real_type> p_cow_export(n_regions);
-    std::vector<real_type> mean_herd_size(n_regions);
+    std::vector<real_type> n_cows_per_herd(n_herds);
     dust2::r::read_real_vector(pars, n_regions, p_region_export.data(), "p_region_export", true);
     dust2::r::read_real_vector(pars, n_regions, p_cow_export.data(), "p_cow_export", true);
-    dust2::r::read_real_vector(pars, n_regions, mean_herd_size.data(), "mean_herd_size", true);
+    dust2::r::read_real_vector(pars, n_herds, n_cows_per_herd.data(), "n_cows_per_herd", true);
 
     std::vector<real_type> movement_matrix(n_regions * n_regions);
     dust2::r::read_real_vector(pars, n_regions * n_regions, movement_matrix.data(), "movement_matrix", true);
@@ -220,7 +217,7 @@ public:
     const real_type alpha = dust2::r::read_real(pars, "alpha");
     const real_type sigma = dust2::r::read_real(pars, "sigma");
 
-    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, mean_herd_size, movement_matrix, start_count, start_region};
+    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_region};
   }
 
   static internal_state build_internal(const shared_state& shared) {
