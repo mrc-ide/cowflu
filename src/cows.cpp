@@ -3,6 +3,19 @@
 #include <dust2/common.hpp>
 #include <numeric>
 
+template <typename real_type>
+void sum_over_regions(real_type *cows,
+                      const size_t n_herds,
+                      const size_t n_regions,
+                      const std::vector<size_t>& region_start) {
+  real_type * dest = cows + n_herds;
+  for (size_t i = 0; i < n_regions; ++i) {
+    const size_t i_start = region_start[i];
+    const size_t i_end = region_start[i + 1];
+    dest[i] = std::accumulate(cows + i_start, cows + i_end, 0);
+  }
+}
+
 // [[dust2::class(cows)]]
 // [[dust2::time_type(discrete)]]
 class cows {
@@ -50,7 +63,7 @@ public:
   using rng_state_type = mcstate::random::generator<real_type>;
 
   static size_t size_state(const shared_state& shared) {
-    return 4 * shared.n_herds;
+    return 4 * (shared.n_herds + shared.n_regions);
   }
 
   static void initial(real_type time,
@@ -66,8 +79,9 @@ public:
     // Thom: should this be drawn from some distribution?  If so that
     // obviously causes a little grief with the seeding as we can't
     // absolutely guarantee that there enough cows to infect.
+    const size_t n = shared.n_herds + shared.n_regions;
     auto *S = state_next;
-    auto *I = state_next + shared.n_herds;
+    auto *I = state_next + 2 * n;
     std::copy(shared.n_cows_per_herd.begin(), shared.n_cows_per_herd.end(), S);
     // Seed the infections into the I class
     //
@@ -75,6 +89,9 @@ public:
     const auto i_start = shared.region_start[shared.start_region];
     I[i_start] = shared.start_count;
     S[i_start] -= shared.start_count;
+
+    sum_over_regions(S, shared.n_herds, shared.n_regions, shared.region_start);
+    sum_over_regions(I, shared.n_herds, shared.n_regions, shared.region_start);
   }
 
   // The main update function, converting state to state_next
@@ -85,15 +102,16 @@ public:
                      internal_state& internal,
                      rng_state_type& rng_state,
                      real_type * state_next) {
+    const size_t n = shared.n_herds;
     const real_type* S = state;
-    const real_type* E = state + shared.n_herds;
-    const real_type* I = state + 2 * shared.n_herds;
-    const real_type* R = state + 3 * shared.n_herds;
+    const real_type* E = state + n;
+    const real_type* I = state + 2 * n;
+    const real_type* R = state + 3 * n;
 
     real_type* S_next = state_next;
-    real_type* E_next = state_next + shared.n_herds;
-    real_type* I_next = state_next + 2 * shared.n_herds;
-    real_type* R_next = state_next + 3 * shared.n_herds;
+    real_type* E_next = state_next + n;
+    real_type* I_next = state_next + 2 * n;
+    real_type* R_next = state_next + 3 * n;
 
     for (size_t i = 0; i < shared.n_herds; ++i) {
       internal.N[i] = S[i] + E[i] + I[i] + R[i];
@@ -171,6 +189,11 @@ public:
       I_next[i] = I_next[i] + internal.import_I[i] - internal.export_I[i];
       R_next[i] = R_next[i] + internal.import_R[i] - internal.export_R[i];
     }
+
+    sum_over_regions(S_next, shared.n_herds, shared.n_regions, shared.region_start);
+    sum_over_regions(E_next, shared.n_herds, shared.n_regions, shared.region_start);
+    sum_over_regions(I_next, shared.n_herds, shared.n_regions, shared.region_start);
+    sum_over_regions(R_next, shared.n_herds, shared.n_regions, shared.region_start);
   }
 
   static shared_state build_shared(cpp11::list pars) {
