@@ -64,7 +64,7 @@ process_movement <- function(root, herd_size_data, redownload = FALSE) {
 
   # Initialize progress bar
   pb <- txtProgressBar(min = 0, max = 1000, style = 3)
-  message("Beginning processing, this will take a while.")
+  message("\nBeginning processing, this will take a while.")
   for(k in 1:1000){
     network_number <- k-1
     # Update progress bar
