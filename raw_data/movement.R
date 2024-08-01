@@ -39,7 +39,7 @@ unzip_movement <- function(file_path){
   } else{
     message("Unzipping the downloaded data. This will take a while.")
     missing_files <- zip_contents[!files_exist]
-    unzip(path, files = missing_files, exdir = "raw_data")
+    unzip(file_path, files = missing_files, exdir = "raw_data")
   }
 
 }
