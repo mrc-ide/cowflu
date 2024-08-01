@@ -102,7 +102,7 @@ public:
                      internal_state& internal,
                      rng_state_type& rng_state,
                      real_type * state_next) {
-    const size_t n = shared.n_herds;
+    const size_t n = shared.n_herds + shared.n_regions;
     const real_type* S = state;
     const real_type* E = state + n;
     const real_type* I = state + 2 * n;
