@@ -5,7 +5,7 @@ cowflu_inputs <- function(alpha, beta, gamma, sigma, inputs) {
 
 
 cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
-                                movement_matrix, start_region,
+                                movement_matrix, start_herd,
                                 start_count = 5,
                                 time_test = 30, n_test = 30,
                                 n_herds_per_region = NULL,
@@ -15,9 +15,9 @@ cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
 
   n_herds <- sum(n_herds_per_region)
   n_regions <- length(n_herds_per_region)
-  if (start_region < 1 || start_region > n_regions) {
+  if (start_herd < 1 || start_herd > n_herds) {
     cli::cli_abort(
-      "Expected 'start_region' to be in range [1, {n_herds}]")
+      "Expected 'start_herd' to be in range [1, {n_herds}]")
   }
   region_start <- as.integer(c(0, cumsum(n_herds_per_region)))
   if (length(p_region_export) != n_regions) {
@@ -51,7 +51,7 @@ cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
        p_cow_export = p_cow_export,
        n_cows_per_herd = n_cows_per_herd,
        movement_matrix = movement_matrix_cumulative,
-       start_region = start_region,
+       start_herd = start_herd,
        start_count = start_count,
        index = rep(seq_along(n_herds_per_region), n_herds_per_region),
        time_test = time_test,
