@@ -39,6 +39,7 @@ public:
     std::vector<real_type> movement_matrix;
     real_type start_count;
     size_t start_region;
+    bool condition_on_export;
   };
 
   struct internal_state {
@@ -149,13 +150,39 @@ public:
     // Above, we change the populations (we do this BEFORE calculating import/exports)
     for (size_t i = 0; i < shared.n_herds; ++i) {
       const auto j = shared.herd_to_region_lookup[i];
-      const auto export_cows = mcstate::random::random_real<real_type>(rng_state) < shared.p_region_export[j] * dt;
+      const auto export_cows = internal.N[i] > 0 && mcstate::random::random_real<real_type>(rng_state) < shared.p_region_export[j] * dt;
       if (export_cows) {
-        const auto p_cow_export = shared.p_cow_export[j] * dt;
-        internal.export_S[i] = mcstate::random::binomial<real_type>(rng_state, S_next[i], p_cow_export);
-        internal.export_E[i] = mcstate::random::binomial<real_type>(rng_state, E_next[i], p_cow_export);
-        internal.export_I[i] = mcstate::random::binomial<real_type>(rng_state, I_next[i], p_cow_export);
-        internal.export_R[i] = mcstate::random::binomial<real_type>(rng_state, R_next[i], p_cow_export);
+        const auto p_cow_export = shared.p_cow_export[j] * dt; // TODO: proper conversion to probability needed
+        // Option 1: rejection sampling:
+        size_t n_exported = 0;
+        do {
+          internal.export_S[i] = mcstate::random::binomial<real_type>(rng_state, S_next[i], p_cow_export);
+          internal.export_E[i] = mcstate::random::binomial<real_type>(rng_state, E_next[i], p_cow_export);
+          internal.export_I[i] = mcstate::random::binomial<real_type>(rng_state, I_next[i], p_cow_export);
+          internal.export_R[i] = mcstate::random::binomial<real_type>(rng_state, R_next[i], p_cow_export);
+          n_exported = internal.export_S[i] + internal.export_E[i] + internal.export_I[i] + internal.export_R[i];
+        } while (!shared.condition_on_export && n_exported == 0);
+        // Option 2:
+        //
+        // Sample the number of cows in each compartment from a
+        // beta-binomial, sharing the beta draw across the four draws,
+        // but redrawing each time around the rejection.
+        //
+        // Option 3:
+        //
+        // If p is very small, then sample from a conditioned binomial
+        // for the total over all cows, then draw SEIR allocation from
+        // a multivartiate hypergeometric, which is not actually
+        // implemented in mcstate2 yet.
+      }
+    }
+
+    // Convert N into cumulative counts within a region:
+    for (size_t i = 0; i < shared.n_regions; ++i) {
+      const size_t i_start = shared.region_start[i];
+      const size_t i_end = shared.region_start[i + 1];
+      for (size_t j = i_start + 1; j < i_end; ++j) {
+        internal.N[j] += internal.N[j - 1];
       }
     }
 
@@ -169,7 +196,15 @@ public:
         const size_t i_region_dst = std::distance(p, std::upper_bound(p, p + shared.n_regions, u1));
         const auto within_region = i_region_src == i_region_dst;
         const real_type u2 = mcstate::random::random_real<real_type>(rng_state);
-        const size_t i_dst = shared.region_start[i_region_dst] + std::floor(u2 * (shared.region_start[i_region_dst + 1] - shared.region_start[i_region_dst]));
+
+        const auto i_region_start = shared.region_start[i_region_dst];
+        const auto i_region_end = shared.region_start[i_region_dst + 1];
+
+        const size_t n_herds_in_region = i_region_end - i_region_start;
+        const size_t n_cows_in_region = internal.N[i_region_end - 1];
+        const auto it_N = internal.N.begin() + i_region_start;
+        const size_t i_dst = std::distance(it_N, std::upper_bound(it_N, it_N + n_herds_in_region, u2 * n_cows_in_region));
+
         const bool allow_movement = within_region || state_travel_allowed ||
           mcstate::random::hypergeometric(rng_state, internal.export_I[i_src], export_N - internal.export_I[i_src], std::min(shared.n_test, internal.export_I[i_src])) == 0;
         if (allow_movement) {
@@ -227,6 +262,8 @@ public:
     std::vector<real_type> movement_matrix(n_regions * n_regions);
     dust2::r::read_real_vector(pars, n_regions * n_regions, movement_matrix.data(), "movement_matrix", true);
 
+    const bool condition_on_export = dust2::r::read_bool(pars, "condition_on_export", false);
+
     const real_type time_test = dust2::r::read_real(pars, "time_test", 30);
     const real_type n_test = dust2::r::read_real(pars, "n_test", 30);
 
@@ -238,7 +275,7 @@ public:
     const real_type alpha = dust2::r::read_real(pars, "alpha");
     const real_type sigma = dust2::r::read_real(pars, "sigma");
 
-    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_region};
+    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_region, condition_on_export};
   }
 
   static internal_state build_internal(const shared_state& shared) {
