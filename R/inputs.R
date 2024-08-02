@@ -4,10 +4,15 @@ cowflu_inputs <- function(alpha, beta, gamma, sigma, inputs) {
 }
 
 
-cowflu_fixed_inputs <- function(n_herds_per_region, p_region_export,
-                                p_cow_export, mean_herd_size, movement_matrix,
-                                start_region, start_count = 5,
-                                time_test = 30, n_test = 30) {
+cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
+                                movement_matrix, start_region,
+                                start_count = 5,
+                                time_test = 30, n_test = 30,
+                                n_herds_per_region = NULL,
+                                n_cows_per_herd = NULL) {
+  n_herds_per_region <- n_herds_per_region %||% usda_data$n_herds_per_region
+  n_cows_per_herd <- n_cows_per_herd %||% usda_data$n_cows_per_herd
+
   n_herds <- sum(n_herds_per_region)
   n_regions <- length(n_herds_per_region)
   if (start_region < 1 || start_region > n_regions) {
@@ -44,7 +49,7 @@ cowflu_fixed_inputs <- function(n_herds_per_region, p_region_export,
        region_start = region_start,
        p_region_export = p_region_export,
        p_cow_export = p_cow_export,
-       mean_herd_size = mean_herd_size,
+       n_cows_per_herd = n_cows_per_herd,
        movement_matrix = movement_matrix_cumulative,
        start_region = start_region,
        start_count = start_count,
