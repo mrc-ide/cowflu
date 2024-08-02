@@ -22,7 +22,7 @@ download_movement <- function(root, redownload = FALSE) {
   dest
 }
 
-unzip_movement <- function(file_path){
+unzip_movement <- function(root, file_path) {
   ## Unzip folder
   # List the contents of the zip file to find the exact path
   zip_contents <- unzip(file_path, list = TRUE)
@@ -36,7 +36,7 @@ unzip_movement <- function(file_path){
 
   if (all_files_exist) {
     message("All files already unzipped.")
-  } else{
+  } else {
     message("Unzipping the downloaded data. This will take a while.")
     missing_files <- zip_contents[!files_exist]
     unzip(file_path, files = missing_files, exdir = "raw_data")
@@ -49,23 +49,26 @@ process_movement <- function(root, herd_size_data, redownload = FALSE) {
   ## Download files
   path <- download_movement(root, redownload)
   ## Unzip files
-  unzip_movement(path)
+  unzip_movement(root, path)
 
   ## Process Data
   ## Extract list of US State names from any of the 1000 posterior realisations:
-  df <- read.table(file.path(root, "raw_data", "dairy/dairy_network_0.network"), header = TRUE)
+  df <- read.table(file.path(root, "raw_data", "dairy/dairy_network_0.network"),
+                   header = TRUE)
   All_states <- sort(usdata::abbr2state(unique(df$oStateAbbr)))
 
+  n_samples <- 1000
+
   ## Build 48x48 arrays to hold extracted info
-  Cattle_export_shipments <- array(NA, dim = c(length(All_states), length(All_states), 1000))
-  Cattle_total_heads_shipped <- array(NA, dim = c(length(All_states), length(All_states), 1000))
-  Cattle_mean_shipment_size <- array(NA, dim = c(length(All_states), length(All_states), 1000))
-  Cattle_shipment_proportion <- array(NA, dim = c(length(All_states), length(All_states), 1000))
+  Cattle_export_shipments <- array(NA, dim = c(length(All_states), length(All_states), n_samples))
+  Cattle_total_heads_shipped <- array(NA, dim = c(length(All_states), length(All_states), n_samples))
+  Cattle_mean_shipment_size <- array(NA, dim = c(length(All_states), length(All_states), n_samples))
+  Cattle_shipment_proportion <- array(NA, dim = c(length(All_states), length(All_states), n_samples))
 
   # Initialize progress bar
-  pb <- txtProgressBar(min = 0, max = 1000, style = 3)
   message("\nBeginning processing, this will take a while.")
-  for(k in 1:1000){
+  pb <- txtProgressBar(min = 0, max = n_samples, style = 3)
+  for (k in seq_len(n_samples)) {
     network_number <- k-1
     # Update progress bar
     setTxtProgressBar(pb, k)
@@ -73,12 +76,12 @@ process_movement <- function(root, herd_size_data, redownload = FALSE) {
     df <- read.table(sprintf(file.path(root, "raw_data", "dairy/dairy_network_%s.network"), network_number), header = TRUE)
     # We only want the farms, not feedlots or markets:
     df <- dplyr::filter(df, oPty == "Frm" & dPty == "Frm")
-    df <- df[,c(4,7,8,12)]
+    df <- df[, c(4,7,8,12)]
     df$oStateAbbr <- usdata::abbr2state(df$oStateAbbr)
     df$dStateAbbr <- usdata::abbr2state(df$dStateAbbr)
 
-    for(i in 1:length(All_states)){
-      for(j in 1:length(All_states)){
+    for (i in seq_along(All_states)) {
+      for (j in seq_along(All_states)) {
         State_i <- All_states[i]
         State_j <- All_states[j]
 
@@ -86,10 +89,10 @@ process_movement <- function(root, herd_size_data, redownload = FALSE) {
         df_hold <- dplyr::filter(df_hold, dStateAbbr %in% State_j)
         Cattle_export_shipments[i,j,k] <- nrow(df_hold)
         # If there are no exports, then we don't factor that into the shipment size calculations
-        if(nrow(df_hold) > 0) {
-        Cattle_total_heads_shipped[i,j,k] <- sum(df_hold$volume)
-        Cattle_mean_shipment_size[i,j,k] <- mean(df_hold$volume)
-        Cattle_shipment_proportion[i,j,k] <- mean(df_hold$volume/df_hold$oBinnedSize)
+        if (nrow(df_hold) > 0) {
+          Cattle_total_heads_shipped[i, j, k] <- sum(df_hold$volume)
+          Cattle_mean_shipment_size[i, j, k] <- mean(df_hold$volume)
+          Cattle_shipment_proportion[i, j, k] <- mean(df_hold$volume /df_hold$oBinnedSize)
         }
 
       }
@@ -138,7 +141,7 @@ process_movement <- function(root, herd_size_data, redownload = FALSE) {
   ## This is just the Mean_Cattle_export_shipments matrix scaled so that every row sums to 1
   #Divide each row by the sum of the row to convert to probabilities
   movement_matrix <- Mean_Cattle_export_shipments
-  for(i in 1:48){
+  for (i in 1:48) {
     movement_matrix[i,] <- movement_matrix[i,]/sum(movement_matrix[i,])
   }
 
