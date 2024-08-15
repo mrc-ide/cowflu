@@ -5,7 +5,7 @@ cowflu_inputs <- function(alpha, beta, gamma, sigma, inputs) {
 
 
 cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
-                                movement_matrix, start_herd,
+                                movement_matrix, start_herd = 26940, #26940 is an average-sized herd in Texas
                                 start_count = 5,
                                 time_test = 30, n_test = 30,
                                 n_herds_per_region = NULL,
