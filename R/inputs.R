@@ -19,6 +19,10 @@ cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
     cli::cli_abort(
       "Expected 'start_herd' to be in range [1, {n_herds}]")
   }
+  if (start_count < 1 || start_count > n_cows_per_herd[start_herd]){
+    cli::cli_abort(
+      "Expected 'start_count' to be in range [1, {n_cows_per_herd[start_herd]}]")
+  }
   region_start <- as.integer(c(0, cumsum(n_herds_per_region)))
   if (length(p_region_export) != n_regions) {
     cli::cli_abort(
