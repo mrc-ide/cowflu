@@ -18,7 +18,7 @@ Imports:
     dust2
 LinkingTo:
     cpp11,
-    dust2,
+    dust2 (>= 0.1.1),
     mcstate2
 Suggests:
     knitr,
