@@ -74,9 +74,9 @@ process_movement <- function(root, herd_size_data, redownload = FALSE) {
     setTxtProgressBar(pb, k)
 
     df <- read.table(sprintf(file.path(root, "raw_data", "dairy/dairy_network_%s.network"), network_number), header = TRUE)
-    # We only want the farms, not feedlots or markets:
-    df <- dplyr::filter(df, oPty == "Frm" & dPty == "Frm")
-    df <- df[, c(4,7,8,12)]
+    # We only want the farms and markets, not feedlots:
+    df <- dplyr::filter(df, oPty %in% c("Frm", "Mkt") & dPty %in% c("Frm", "Mkt"))
+    df <- df[, c(4,7,8,11,12,13)]
     df$oStateAbbr <- usdata::abbr2state(df$oStateAbbr)
     df$dStateAbbr <- usdata::abbr2state(df$dStateAbbr)
 
@@ -88,11 +88,14 @@ process_movement <- function(root, herd_size_data, redownload = FALSE) {
         df_hold <- dplyr::filter(df, oStateAbbr %in% State_i)
         df_hold <- dplyr::filter(df_hold, dStateAbbr %in% State_j)
         Cattle_export_shipments[i,j,k] <- nrow(df_hold)
+        #We don't want to consider shipments FROM markets for shipment proportion, as these have very large population sizes
+        df_hold_from_farm <- dplyr::filter(df_hold, oPty == "Frm" & dPty == "Frm")
+
         # If there are no exports, then we don't factor that into the shipment size calculations
         if (nrow(df_hold) > 0) {
           Cattle_total_heads_shipped[i, j, k] <- sum(df_hold$volume)
           Cattle_mean_shipment_size[i, j, k] <- mean(df_hold$volume)
-          Cattle_shipment_proportion[i, j, k] <- mean(df_hold$volume /df_hold$oBinnedSize)
+          Cattle_shipment_proportion[i, j, k] <- mean(df_hold_from_farm$volume /df_hold_from_farm$oBinnedSize)
         }
 
       }
@@ -134,6 +137,8 @@ process_movement <- function(root, herd_size_data, redownload = FALSE) {
   #p_cow_export <- sapply(1:48, function(i) mean(Mean_Cattle_mean_shipment_size[i,]) / mean_herd_size_per_region[i])
 
   ## Option 2
+  ## The issue with this approach, is that we don't want to consider markets, as they are listed with some very large origin sizes
+  ##So we don't count shipments FROM markets.
   p_cow_export <- sapply(1:48, function(i) mean(Mean_Cattle_shipment_proportion[i,]))
 
   ## movement_matrix

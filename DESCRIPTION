@@ -10,7 +10,7 @@ Description: A model of cows being moved around, with flu.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 URL: https://mrc-ide.github.io/cowflu https://github.com/mrc-ide/cowflu
 BugReports: https://github.com/mrc-ide/cowflu/issues
 Imports:
@@ -21,8 +21,11 @@ LinkingTo:
     dust2 (>= 0.1.1),
     mcstate2
 Suggests:
+    knitr,
+    rmarkdown,
     testthat (>= 3.0.0)
 Remotes:
     mrc-ide/dust2
 Config/testthat/edition: 3
 Language: en-GB
+VignetteBuilder: knitr
