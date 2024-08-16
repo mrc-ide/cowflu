@@ -166,7 +166,7 @@ public:
           internal.export_I[i] = mcstate::random::binomial<real_type>(rng_state, I_next[i], p_cow_export);
           internal.export_R[i] = mcstate::random::binomial<real_type>(rng_state, R_next[i], p_cow_export);
           n_exported = internal.export_S[i] + internal.export_E[i] + internal.export_I[i] + internal.export_R[i];
-        } while (!shared.condition_on_export && n_exported == 0);
+        } while (shared.condition_on_export && n_exported == 0);
         // Option 2:
         //
         // Sample the number of cows in each compartment from a
