@@ -279,11 +279,7 @@ public:
     const real_type alpha = dust2::r::read_real(pars, "alpha");
     const real_type sigma = dust2::r::read_real(pars, "sigma");
 
-<<<<<<< HEAD
-    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_region, condition_on_export};
-=======
-    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd};
->>>>>>> origin/main
+    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, condition_on_export};
   }
 
   static internal_state build_internal(const shared_state& shared) {

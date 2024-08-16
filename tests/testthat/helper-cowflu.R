@@ -13,6 +13,6 @@ test_toy_inputs <- function(alpha = 0.2, beta = 0.9, gamma = 0.1,
       n_cows_per_herd = c(rep(200, 3), rep(1000, 7), rep(3000, 11)),
       movement_matrix = cbind(c(.6, .2, .2), c(.2, .6, .2), c(.2, .2, .6)),
       time_test = 10000,
-      start_region = 2,
+      start_herd = 4,
       start_count = start_count))
 }
