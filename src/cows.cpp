@@ -40,7 +40,7 @@ public:
     std::vector<real_type> n_cows_per_herd;
     std::vector<real_type> movement_matrix;
     real_type start_count;
-    size_t start_region;
+    size_t start_herd;
   };
 
   struct internal_state {
@@ -89,11 +89,8 @@ public:
     auto *I = state_next + 2 * n;
     std::copy(shared.n_cows_per_herd.begin(), shared.n_cows_per_herd.end(), S);
     // Seed the infections into the I class
-    //
-    // Thom: should this go into E rather than I?
-    const auto i_start = shared.region_start[shared.start_region];
-    I[i_start] = shared.start_count;
-    S[i_start] -= shared.start_count;
+    I[shared.start_herd] = shared.start_count;
+    S[shared.start_herd] -= shared.start_count;
 
     sum_over_regions(S, shared.n_herds, shared.n_regions, shared.region_start);
     sum_over_regions(I, shared.n_herds, shared.n_regions, shared.region_start);
@@ -238,14 +235,14 @@ public:
     const real_type n_test = dust2::r::read_real(pars, "n_test", 30);
 
     const real_type start_count = dust2::r::read_real(pars, "start_count");
-    const size_t start_region = dust2::r::read_size(pars, "start_region") - 1;
+    const size_t start_herd = dust2::r::read_size(pars, "start_herd") - 1;
 
     const real_type beta = dust2::r::read_real(pars, "beta");
     const real_type gamma = dust2::r::read_real(pars, "gamma");
     const real_type alpha = dust2::r::read_real(pars, "alpha");
     const real_type sigma = dust2::r::read_real(pars, "sigma");
 
-    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_region};
+    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd};
   }
 
   static internal_state build_internal(const shared_state& shared) {
