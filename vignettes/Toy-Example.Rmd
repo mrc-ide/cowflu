@@ -27,12 +27,12 @@ Consider 3 regions, each containing 3, 7, and 11, herds respectively.
 ##Setting model parameters
 First, we set the model parameters:
 ```{r}
-pars <- cowflu_inputs(
+pars <- cowflu:::cowflu_inputs(
   alpha = 0.2, #The rate of herd-to-herd infection contacts within each region.
   beta = 0.9,  #The transmission rate
   gamma = 0.1, #The incubation rate
   sigma = 0.125,  #The recovery rate
-  cowflu_fixed_inputs(
+  cowflu:::cowflu_fixed_inputs(
     n_herds_per_region = c(3, 7, 11),
     p_region_export = c(.5, .5, .5),
     p_cow_export = c(0.2, 0.2, 0.2),
@@ -56,28 +56,34 @@ pars <- cowflu_inputs(
 Other model parameters are:
 `n_test` is the number of cows that are tested during inter-region exports from `time_test` onwards. This defaults to 30.
 
-##Running the model
+## Running the model
+
 Start by setting the seed, and the number of particles we wish to run
+
 ```{r}
 set.seed(1)
 n_particles <- 1
 ```
 
 Initialise the dust system:
+
 ```{r}
-sys <- dust2::dust_system_create(cows(), pars, n_particles = n_particles, dt = 0.25)
+sys <- dust2::dust_system_create(cowflu:::cows(), pars, n_particles = n_particles, dt = 0.25)
 dust2::dust_system_set_state_initial(sys)
 ```
 
 Run the model for the desired number of time-steps, in this instance, from 0 to 75:
+
 ```{r}
 s <- dust2::dust_system_simulate(sys, 0:75)
 ```
 
 Now re-arrange this output into an array:
+
 ```{r}
 s1 <- array(s, c(pars$n_herds + pars$n_regions, 4, n_particles, 76))
 ```
+
 Dim 1 is the herd, and note that we also export cumulative region totals too on the end.
 Dim 2 is the number of epi compartments: S, E, I, and R.
 Dim 3 is the number of particles run
