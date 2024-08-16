@@ -25,7 +25,9 @@ Each model system is comprised of a number of regions, and each region contains 
 Consider 3 regions, each containing 3, 7, and 11, herds respectively.
 
 ##Setting model parameters
+
 First, we set the model parameters:
+
 ```{r}
 pars <- cowflu:::cowflu_inputs(
   alpha = 0.2, #The rate of herd-to-herd infection contacts within each region.
@@ -68,7 +70,7 @@ n_particles <- 1
 Initialise the dust system:
 
 ```{r}
-sys <- dust2::dust_system_create(cowflu:::cows(), pars, n_particles = n_particles, dt = 0.25)
+sys <- dust2::dust_system_create(cowflu:::cows(), pars, n_particles = n_particles, dt = 0.25, seed = 42)
 dust2::dust_system_set_state_initial(sys)
 ```
 
@@ -99,11 +101,14 @@ i <- c(outer(i, (pars$n_herds + pars$n_regions) * (0:3), "+"))
 
 And run the model, and allocate output into an array
 ```{r}
+sys <- dust2::dust_system_create(cowflu:::cows(), pars, n_particles = n_particles, dt = 0.25, seed = 42)
+dust2::dust_system_set_state_initial(sys)
 s <- dust2::dust_system_simulate(sys, 0:75, i)
 s2 <- array(s, c(pars$n_regions, 4, n_particles, 76))
 ```
 
 And check that these outputs are the same:
+
 ```{r}
-expect_equal(s1[22:24, , , , drop = FALSE], s2)
+testthat::expect_equal(s1[22:24, , , , drop = FALSE], s2)
 ```
