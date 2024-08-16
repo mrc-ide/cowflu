@@ -1,11 +1,12 @@
 ## Simple toy example, symmetric migration with three regions
 test_toy_inputs <- function(alpha = 0.2, beta = 0.9, gamma = 0.1,
-                            sigma = 0.125, start_count = 5) {
+                            sigma = 0.125, start_count = 5, asc_rate = 1) {
   cowflu_inputs(
     alpha = alpha,
     beta = beta,
     gamma = gamma,
     sigma = sigma,
+    asc_rate = asc_rate,
     cowflu_fixed_inputs(
       n_herds_per_region = c(3, 7, 11),
       p_region_export = c(.5, .5, .5),
