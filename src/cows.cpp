@@ -277,8 +277,8 @@ public:
 #include <dust2/r/discrete/system.hpp>
 
 [[cpp11::register]]
-SEXP dust2_system_cows_alloc(cpp11::list r_pars, cpp11::sexp r_time, cpp11::sexp r_dt, cpp11::sexp r_n_particles, cpp11::sexp r_n_groups, cpp11::sexp r_seed, cpp11::sexp r_deterministic) {
-  return dust2::r::dust2_discrete_alloc<cows>(r_pars, r_time, r_dt, r_n_particles, r_n_groups, r_seed, r_deterministic);
+SEXP dust2_system_cows_alloc(cpp11::list r_pars, cpp11::sexp r_time, cpp11::sexp r_dt, cpp11::sexp r_n_particles, cpp11::sexp r_n_groups, cpp11::sexp r_seed, cpp11::sexp r_deterministic, cpp11::sexp r_n_threads) {
+  return dust2::r::dust2_discrete_alloc<cows>(r_pars, r_time, r_dt, r_n_particles, r_n_groups, r_seed, r_deterministic, r_n_threads);
 }
 [[cpp11::register]]
 SEXP dust2_system_cows_run_to_time(cpp11::sexp ptr, cpp11::sexp r_time) {
@@ -286,8 +286,8 @@ SEXP dust2_system_cows_run_to_time(cpp11::sexp ptr, cpp11::sexp r_time) {
 }
 
 [[cpp11::register]]
-SEXP dust2_system_cows_state(cpp11::sexp ptr, bool grouped) {
-  return dust2::r::dust2_system_state<dust2::dust_discrete<cows>>(ptr, grouped);
+SEXP dust2_system_cows_state(cpp11::sexp ptr, cpp11::sexp r_index_state, cpp11::sexp r_index_particle, cpp11::sexp r_index_group, bool preserve_particle_dimension, bool preserve_group_dimension) {
+  return dust2::r::dust2_system_state<dust2::dust_discrete<cows>>(ptr, r_index_state, r_index_particle, r_index_group, preserve_particle_dimension, preserve_group_dimension);
 }
 
 [[cpp11::register]]
@@ -301,8 +301,8 @@ SEXP dust2_system_cows_set_state_initial(cpp11::sexp ptr) {
 }
 
 [[cpp11::register]]
-SEXP dust2_system_cows_set_state(cpp11::sexp ptr, cpp11::sexp r_state, bool grouped) {
-  return dust2::r::dust2_system_set_state<dust2::dust_discrete<cows>>(ptr, r_state, grouped);
+SEXP dust2_system_cows_set_state(cpp11::sexp ptr, cpp11::sexp r_state, bool preserve_group_dimension) {
+  return dust2::r::dust2_system_set_state<dust2::dust_discrete<cows>>(ptr, r_state, preserve_group_dimension);
 }
 
 [[cpp11::register]]
@@ -326,11 +326,11 @@ SEXP dust2_system_cows_set_time(cpp11::sexp ptr, cpp11::sexp r_time) {
 }
 
 [[cpp11::register]]
-SEXP dust2_system_cows_update_pars(cpp11::sexp ptr, cpp11::list pars, bool grouped) {
-  return dust2::r::dust2_system_update_pars<dust2::dust_discrete<cows>>(ptr, pars, grouped);
+SEXP dust2_system_cows_update_pars(cpp11::sexp ptr, cpp11::list pars) {
+  return dust2::r::dust2_system_update_pars<dust2::dust_discrete<cows>>(ptr, pars);
 }
 
 [[cpp11::register]]
-SEXP dust2_system_cows_simulate(cpp11::sexp ptr, cpp11::sexp r_times, cpp11::sexp r_index, bool grouped) {
-  return dust2::r::dust2_system_simulate<dust2::dust_discrete<cows>>(ptr, r_times, r_index, grouped);
+SEXP dust2_system_cows_simulate(cpp11::sexp ptr, cpp11::sexp r_times, cpp11::sexp r_index_state, bool preserve_particle_dimension, bool preserve_group_dimension) {
+  return dust2::r::dust2_system_simulate<dust2::dust_discrete<cows>>(ptr, r_times, r_index_state, preserve_particle_dimension, preserve_group_dimension);
 }
