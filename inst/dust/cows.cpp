@@ -201,7 +201,7 @@ public:
         const size_t n_herds_in_region = i_region_end - i_region_start;
         const size_t n_cows_in_region = internal.N[i_region_end - 1];
         const auto it_N = internal.N.begin() + i_region_start;
-        const size_t i_dst = std::distance(it_N, std::upper_bound(it_N, it_N + n_herds_in_region, u2 * n_cows_in_region));
+        const size_t i_dst = i_region_start + std::distance(it_N, std::upper_bound(it_N, it_N + n_herds_in_region, u2 * n_cows_in_region));
 
         const bool allow_movement = within_region || state_travel_allowed ||
           mcstate::random::hypergeometric(rng_state, internal.export_I[i_src], export_N - internal.export_I[i_src], std::min(shared.n_test, internal.export_I[i_src])) == 0;
