@@ -1,7 +1,8 @@
 ## Simple toy example, symmetric migration with three regions
 test_toy_inputs <- function(alpha = 0.2, beta = 0.9, gamma = 0.1,
                             sigma = 0.125, start_count = 5,
-                            movement_matrix = cbind(c(.6, .2, .2), c(.2, .6, .2), c(.2, .2, .6))) {
+                            movement_matrix = cbind(c(.6, .2, .2), c(.2, .6, .2), c(.2, .2, .6)),
+                            time_test = 10000) {
   cowflu_inputs(
     alpha = alpha,
     beta = beta,
@@ -13,7 +14,7 @@ test_toy_inputs <- function(alpha = 0.2, beta = 0.9, gamma = 0.1,
       p_cow_export = c(0.2, 0.2, 0.2),
       n_cows_per_herd = c(rep(200, 3), rep(1000, 7), rep(3000, 11)),
       movement_matrix = movement_matrix,
-      time_test = 10000,
+      time_test = time_test,
       start_herd = 4,
       start_count = start_count))
 }
