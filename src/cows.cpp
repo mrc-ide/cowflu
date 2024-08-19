@@ -212,6 +212,11 @@ public:
           internal.import_E[i_dst] += internal.export_E[i_src];
           internal.import_I[i_dst] += internal.export_I[i_src];
           internal.import_R[i_dst] += internal.export_R[i_src];
+        } else {
+          internal.export_S[i_src] = 0;
+          internal.export_E[i_src] = 0;
+          internal.export_I[i_src] = 0;
+          internal.export_R[i_src] = 0;
         }
       }
     }
