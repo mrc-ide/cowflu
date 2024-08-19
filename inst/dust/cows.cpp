@@ -79,10 +79,6 @@ public:
     const auto len_state = 4 * (shared.n_herds + shared.n_regions);
     std::fill(state_next, state_next + len_state, 0);
     // Then fill in susceptibles from the mean herd size
-    //
-    // Thom: should this be drawn from some distribution?  If so that
-    // obviously causes a little grief with the seeding as we can't
-    // absolutely guarantee that there enough cows to infect.
     const size_t n = shared.n_herds + shared.n_regions;
     auto *S = state_next;
     auto *I = state_next + 2 * n;
