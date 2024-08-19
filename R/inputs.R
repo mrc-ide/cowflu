@@ -47,6 +47,7 @@ cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
       "Expected rows of 'movement_matrix' to sum to 1",
       i = "Check rows {which(err)}")
   }
+  ## This line will transpose the matrix, and change the original rows (now columns) to a cumulative sum.
   movement_matrix_cumulative <- apply(movement_matrix, 1, cumsum)
 
   list(n_herds = n_herds,
