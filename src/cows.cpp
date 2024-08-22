@@ -89,10 +89,6 @@ public:
     const auto len_state = 5 * (shared.n_herds + shared.n_regions);
     std::fill(state_next, state_next + len_state, 0);
     // Then fill in susceptibles from the mean herd size
-    //
-    // Thom: should this be drawn from some distribution?  If so that
-    // obviously causes a little grief with the seeding as we can't
-    // absolutely guarantee that there enough cows to infect.
     const size_t n = shared.n_herds + shared.n_regions;
     auto *S = state_next;
     auto *I = state_next + 2 * n;
@@ -233,15 +229,20 @@ public:
         const size_t n_herds_in_region = i_region_end - i_region_start;
         const size_t n_cows_in_region = internal.N[i_region_end - 1];
         const auto it_N = internal.N.begin() + i_region_start;
-        const size_t i_dst = std::distance(it_N, std::upper_bound(it_N, it_N + n_herds_in_region, u2 * n_cows_in_region));
+        const size_t i_dst = i_region_start + std::distance(it_N, std::upper_bound(it_N, it_N + n_herds_in_region, u2 * n_cows_in_region));
 
         const bool allow_movement = within_region || state_travel_allowed ||
-          mcstate::random::hypergeometric(rng_state, internal.export_I[i_src], export_N - internal.export_I[i_src], std::min(shared.n_test, internal.export_I[i_src])) == 0;
+          mcstate::random::hypergeometric(rng_state, internal.export_I[i_src], export_N - internal.export_I[i_src], std::min(shared.n_test, static_cast<real_type>(export_N))) == 0;
         if (allow_movement) {
           internal.import_S[i_dst] += internal.export_S[i_src];
           internal.import_E[i_dst] += internal.export_E[i_src];
           internal.import_I[i_dst] += internal.export_I[i_src];
           internal.import_R[i_dst] += internal.export_R[i_src];
+        } else {
+          internal.export_S[i_src] = 0;
+          internal.export_E[i_src] = 0;
+          internal.export_I[i_src] = 0;
+          internal.export_R[i_src] = 0;
         }
       }
     }
