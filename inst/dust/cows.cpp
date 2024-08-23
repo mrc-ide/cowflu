@@ -46,7 +46,7 @@ public:
     std::vector<real_type> movement_matrix;
     real_type start_count;
     size_t start_herd;
-    real_type asc_rate;
+    std::vector<real_type> asc_rate;
     bool condition_on_export;
   };
 
@@ -152,7 +152,7 @@ public:
         if (outbreak[j]) {
           outbreak_next[j] = true;
         } else {
-          const auto new_outbreak = declare_outbreak_in_herd(I_next[j], internal.N[j], shared.asc_rate, dt, rng_state);
+          const auto new_outbreak = declare_outbreak_in_herd(I_next[j], internal.N[j], shared.asc_rate[i], dt, rng_state);
           outbreak_next[j] = new_outbreak;
           if (new_outbreak) {
             n_outbreaks++;
@@ -304,7 +304,16 @@ public:
     const real_type gamma = dust2::r::read_real(pars, "gamma");
     const real_type alpha = dust2::r::read_real(pars, "alpha");
     const real_type sigma = dust2::r::read_real(pars, "sigma");
-    const real_type asc_rate = dust2::r::read_real(pars, "asc_rate");
+
+    cpp11::sexp r_asc_rate = pars["asc_rate"];
+    std::vector<real_type> asc_rate(n_regions);
+    if (LENGTH(r_asc_rate) == 1) {
+      std::fill(asc_rate.begin(),
+                asc_rate.end(),
+                dust2::r::read_real(pars, "asc_rate"));
+    } else {
+      dust2::r::read_real_vector(pars, n_regions, asc_rate.data(), "asc_rate", true);
+    }
 
     return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, condition_on_export};
   }
