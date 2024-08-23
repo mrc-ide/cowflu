@@ -75,6 +75,7 @@ respectively.</p>
 <span>  beta <span class="op">=</span> <span class="fl">0.9</span>,  <span class="co">#The transmission rate</span></span>
 <span>  gamma <span class="op">=</span> <span class="fl">0.1</span>, <span class="co">#The incubation rate</span></span>
 <span>  sigma <span class="op">=</span> <span class="fl">0.125</span>,  <span class="co">#The recovery rate</span></span>
+<span>  asc_rate <span class="op">=</span> <span class="fl">1</span>, <span class="co"># The ascertainment rate</span></span>
 <span>  <span class="fu">cowflu</span><span class="fu">:::</span><span class="fu">cowflu_fixed_inputs</span><span class="op">(</span></span>
 <span>    n_herds_per_region <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">7</span>, <span class="fl">11</span><span class="op">)</span>,</span>
 <span>    p_region_export <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">.5</span>, <span class="fl">.5</span>, <span class="fl">.5</span><span class="op">)</span>,</span>
@@ -131,10 +132,11 @@ from 0 to 75:</p>
 <code class="sourceCode R"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu">dust2</span><span class="fu">::</span><span class="fu"><a href="https://mrc-ide.github.io/dust2/reference/dust_system_simulate.html" class="external-link">dust_system_simulate</a></span><span class="op">(</span><span class="va">sys</span>, <span class="fl">0</span><span class="op">:</span><span class="fl">75</span><span class="op">)</span></span></code></pre></div>
 <p>Now re-arrange this output into an array:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">s1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/array.html" class="external-link">array</a></span><span class="op">(</span><span class="va">s</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">pars</span><span class="op">$</span><span class="va">n_herds</span> <span class="op">+</span> <span class="va">pars</span><span class="op">$</span><span class="va">n_regions</span>, <span class="fl">4</span>, <span class="va">n_particles</span>, <span class="fl">76</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">s1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/array.html" class="external-link">array</a></span><span class="op">(</span><span class="va">s</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">pars</span><span class="op">$</span><span class="va">n_herds</span> <span class="op">+</span> <span class="va">pars</span><span class="op">$</span><span class="va">n_regions</span>, <span class="fl">5</span>, <span class="va">n_particles</span>, <span class="fl">76</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Dim 1 is the herd, and note that we also export cumulative region
 totals too on the end. Dim 2 is the number of epi compartments: S, E, I,
-and R. Dim 3 is the number of particles run Dim 4 is time.</p>
+and R, and outbreak recording Dim 3 is the number of particles run Dim 4
+is time.</p>
 <p>Note, for large models, we may not want (or be able) to export every
 herd’s dynamic profile. Instead, we can ask dust2 to just return the
 region totals like so:</p>
@@ -150,7 +152,7 @@ region totals like so:</p>
 <span><span class="va">s2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/array.html" class="external-link">array</a></span><span class="op">(</span><span class="va">s</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">pars</span><span class="op">$</span><span class="va">n_regions</span>, <span class="fl">4</span>, <span class="va">n_particles</span>, <span class="fl">76</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>And check that these outputs are the same:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">testthat</span><span class="fu">::</span><span class="fu"><a href="https://testthat.r-lib.org/reference/equality-expectations.html" class="external-link">expect_equal</a></span><span class="op">(</span><span class="va">s1</span><span class="op">[</span><span class="fl">22</span><span class="op">:</span><span class="fl">24</span>, , , , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span>, <span class="va">s2</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">testthat</span><span class="fu">::</span><span class="fu"><a href="https://testthat.r-lib.org/reference/equality-expectations.html" class="external-link">expect_equal</a></span><span class="op">(</span><span class="va">s1</span><span class="op">[</span><span class="fl">22</span><span class="op">:</span><span class="fl">24</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, , , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span>, <span class="va">s2</span><span class="op">)</span></span></code></pre></div>
 </div>
   </main>
 </div>
