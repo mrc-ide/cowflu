@@ -72,10 +72,6 @@ dust2_unfilter_cows_last_history <- function(ptr, r_index_group, preserve_partic
   .Call(`_cowflu_dust2_unfilter_cows_last_history`, ptr, r_index_group, preserve_particle_dimension, preserve_group_dimension)
 }
 
-dust2_unfilter_cows_last_state <- function(ptr, r_index_group, preserve_particle_dimension, preserve_group_dimension) {
-  .Call(`_cowflu_dust2_unfilter_cows_last_state`, ptr, r_index_group, preserve_particle_dimension, preserve_group_dimension)
-}
-
 dust2_filter_cows_update_pars <- function(ptr, r_pars, r_index_group) {
   .Call(`_cowflu_dust2_filter_cows_update_pars`, ptr, r_pars, r_index_group)
 }
@@ -86,10 +82,6 @@ dust2_filter_cows_run <- function(ptr, r_initial, save_history, index_group, pre
 
 dust2_filter_cows_last_history <- function(ptr, r_index_group, select_random_particle, preserve_group_dimension) {
   .Call(`_cowflu_dust2_filter_cows_last_history`, ptr, r_index_group, select_random_particle, preserve_group_dimension)
-}
-
-dust2_filter_cows_last_state <- function(ptr, r_index_group, select_random_particle, preserve_group_dimension) {
-  .Call(`_cowflu_dust2_filter_cows_last_state`, ptr, r_index_group, select_random_particle, preserve_group_dimension)
 }
 
 dust2_filter_cows_rng_state <- function(ptr) {

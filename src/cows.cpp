@@ -507,11 +507,6 @@ SEXP dust2_unfilter_cows_last_history(cpp11::sexp ptr, cpp11::sexp r_index_group
 }
 
 [[cpp11::register]]
-SEXP dust2_unfilter_cows_last_state(cpp11::sexp ptr, cpp11::sexp r_index_group, bool preserve_particle_dimension, bool preserve_group_dimension) {
-  return dust2::r::dust2_unfilter_last_state<dust2::dust_discrete<cows>>(ptr, r_index_group, preserve_particle_dimension, preserve_group_dimension);
-}
-
-[[cpp11::register]]
 SEXP dust2_filter_cows_update_pars(cpp11::sexp ptr, cpp11::list r_pars, cpp11::sexp r_index_group) {
   return dust2::r::dust2_filter_update_pars<dust2::dust_discrete<cows>>(ptr, r_pars, r_index_group);
 }
@@ -524,11 +519,6 @@ SEXP dust2_filter_cows_run(cpp11::sexp ptr, cpp11::sexp r_initial, bool save_his
 [[cpp11::register]]
 SEXP dust2_filter_cows_last_history(cpp11::sexp ptr, cpp11::sexp r_index_group, bool select_random_particle, bool preserve_group_dimension) {
   return dust2::r::dust2_filter_last_history<dust2::dust_discrete<cows>>(ptr, r_index_group, select_random_particle, preserve_group_dimension);
-}
-
-[[cpp11::register]]
-SEXP dust2_filter_cows_last_state(cpp11::sexp ptr, cpp11::sexp r_index_group, bool select_random_particle, bool preserve_group_dimension) {
-  return dust2::r::dust2_filter_last_state<dust2::dust_discrete<cows>>(ptr, r_index_group, select_random_particle, preserve_group_dimension);
 }
 
 [[cpp11::register]]
