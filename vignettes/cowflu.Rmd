@@ -35,7 +35,8 @@ pars <- cowflu:::cowflu_inputs(
   gamma = 0.1, #The incubation rate
   sigma = 0.125,  #The recovery rate
   asc_rate = 1, # The ascertainment rate
-  cowflu:::cowflu_fixed_inputs(
+  dispersion = 1, # Dispersion parameter, when fitting
+  inputs = cowflu:::cowflu_fixed_inputs(
     n_herds_per_region = c(3, 7, 11),
     p_region_export = c(.5, .5, .5),
     p_cow_export = c(0.2, 0.2, 0.2),
