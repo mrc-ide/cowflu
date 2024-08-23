@@ -4,10 +4,8 @@ test_that("basic epi dynamics are reasonable", {
   times <- 0:75
   sys <- dust2::dust_system_create(cows(), pars, n_particles = n_particles, dt = 0.25)
   dust2::dust_system_set_state_initial(sys)
-  s0 <- array(dust2::dust_system_state(sys),
-              c(pars$n_herds + pars$n_regions, 5))
   s <- dust2::dust_system_simulate(sys, times)
-  s1 <- array(s, c(pars$n_herds + pars$n_regions, 5, n_particles, length(times)))
+  s1 <- array_safe(s, c(pars$n_herds + pars$n_regions, 5, n_particles, length(times)))
 
   s1_herds <- s1[-(22:24), 1:4, , ]
   s1_total <- s1[22:24, 1:4, , ]
