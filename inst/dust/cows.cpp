@@ -16,7 +16,7 @@ void sum_over_regions(real_type *cows,
 
 template <typename real_type, typename rng_state_type>
 bool declare_outbreak_in_herd(real_type I, real_type N, real_type asc_rate, real_type dt, rng_state_type& rng_state) {
-  const auto prevelance = I / N * asc_rate * dt;
+  const auto prevelance = 1 - std::exp(I / N * asc_rate * dt);
   const auto u = monty::random::random_real<double>(rng_state);
   return u < prevelance;
 }
