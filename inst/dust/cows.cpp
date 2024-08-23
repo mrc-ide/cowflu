@@ -395,7 +395,9 @@ public:
     real_type ll = 0;
     for (size_t i = 0; i < shared.n_regions; ++i) {
       const auto observed = data.positive_tests[i];
-      const auto modelled_count = outbreak_region_count[i];
+      const auto noise =
+        monty::random::exponential_rate(rng_state, 1e6);
+      const auto modelled_count = outbreak_region_count[i] + noise;
       // From ?rnbinom:
       //
       // An alternative parametrization (often used in ecology) is by
