@@ -17,8 +17,8 @@ void sum_over_regions(real_type *cows,
 }
 
 template <typename real_type, typename rng_state_type>
-bool declare_outbreak_in_herd(real_type I, real_type N, real_type asc_rate, rng_state_type& rng_state) {
-  const auto prevelance = I / N * asc_rate;
+bool declare_outbreak_in_herd(real_type I, real_type N, real_type asc_rate, real_type dt, rng_state_type& rng_state) {
+  const auto prevelance = I / N * asc_rate * dt;
   const auto u = mcstate::random::random_real<double>(rng_state);
   return u < prevelance;
 }
@@ -154,7 +154,7 @@ public:
         if (outbreak[j]) {
           outbreak_next[j] = true;
         } else {
-          const auto new_outbreak = declare_outbreak_in_herd(I_next[j], internal.N[j], shared.asc_rate, rng_state);
+          const auto new_outbreak = declare_outbreak_in_herd(I_next[j], internal.N[j], shared.asc_rate, dt, rng_state);
           outbreak_next[j] = new_outbreak;
           if (new_outbreak) {
             n_outbreaks++;
