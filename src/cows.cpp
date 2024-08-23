@@ -25,6 +25,7 @@ bool declare_outbreak_in_herd(real_type I, real_type N, real_type asc_rate, real
 
 // [[dust2::class(cows)]]
 // [[dust2::time_type(discrete)]]
+// [[dust2::has_compare()]]
 class cows {
 public:
   cows() = delete;
@@ -49,6 +50,7 @@ public:
     real_type start_count;
     size_t start_herd;
     std::vector<real_type> asc_rate;
+    real_type dispersion;
     bool condition_on_export;
   };
 
@@ -63,10 +65,6 @@ public:
     std::vector<real_type> import_E;
     std::vector<real_type> import_I;
     std::vector<real_type> import_R;
-  };
-
-  struct data_type {
-    real_type incidence;
   };
 
   using rng_state_type = monty::random::generator<real_type>;
@@ -306,6 +304,7 @@ public:
     const real_type gamma = dust2::r::read_real(pars, "gamma");
     const real_type alpha = dust2::r::read_real(pars, "alpha");
     const real_type sigma = dust2::r::read_real(pars, "sigma");
+    const real_type dispersion = dust2::r::read_real(pars, "dispersion");
 
     cpp11::sexp r_asc_rate = pars["asc_rate"];
     std::vector<real_type> asc_rate(n_regions);
@@ -317,7 +316,7 @@ public:
       dust2::r::read_real_vector(pars, n_regions, asc_rate.data(), "asc_rate", true);
     }
 
-    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, condition_on_export};
+    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, dispersion, condition_on_export};
   }
 
   static internal_state build_internal(const shared_state& shared) {
@@ -340,6 +339,15 @@ public:
     shared.gamma = dust2::r::read_real(pars, "gamma", shared.gamma);
     shared.alpha = dust2::r::read_real(pars, "alpha", shared.alpha);
     shared.sigma = dust2::r::read_real(pars, "sigma", shared.sigma);
+    shared.dispersion = dust2::r::read_real(pars, "dispersion", shared.dispersion);
+
+    if (LENGTH(pars["asc_rate"]) == 1) {
+      std::fill(shared.asc_rate.begin(),
+                shared.asc_rate.end(),
+                dust2::r::read_real(pars, "asc_rate"));
+    } else {
+      dust2::r::read_real_vector(pars, shared.n_regions, shared.asc_rate.data(), "asc_rate", false);
+    }
   }
 
   // This is a reasonable default implementation in the no-internal
@@ -357,10 +365,56 @@ public:
     }
     return dust2::zero_every_type<real_type>{{weekly, reset}};
   }
+
+  struct data_type {
+    std::vector<real_type> positive_tests;
+  };
+
+  static data_type build_data(cpp11::list r_data) {
+    auto data = static_cast<cpp11::list>(r_data);
+    // TODO: rich will change build_data to accept shared, from which
+    // we can read the number of regions.
+    const auto n_regions = 48;
+    std::vector<real_type> positive_tests(n_regions);
+    dust2::r::read_real_vector(r_data, n_regions, positive_tests.data(), "positive_tests", true);
+    return data_type{positive_tests};
+  }
+
+  static real_type compare_data(const real_type time,
+                                const real_type dt,
+                                const real_type * state,
+                                const data_type& data,
+                                const shared_state& shared,
+                                internal_state& internal,
+                                rng_state_type& rng_state) {
+    // As in the update function, access the count of outbreaks summed
+    // over all herds in a region, this week.
+    const size_t n = shared.n_herds + shared.n_regions;
+    const auto* outbreak_region_count = state + 4 * n + shared.n_herds;
+
+    // Negative binomial likelihood for each region, then sum these
+    // (logged) over all regions
+    real_type ll = 0;
+    for (size_t i = 0; i < shared.n_regions; ++i) {
+      const auto observed = data.positive_tests[i];
+      const auto modelled_count = outbreak_region_count[i];
+      // From ?rnbinom:
+      //
+      // An alternative parametrization (often used in ecology) is by
+      // the mean mu (see above), and size, the dispersion parameter,
+      // where prob = size/(size+mu). The variance is mu + mu^2/size
+      // in this parametrization.
+      //                                         data      "size"             "mu"            log
+      ll += monty::density::negative_binomial_mu(observed, shared.dispersion, modelled_count, true);
+    }
+    return ll;
+  }
 };
 
 #include <cpp11.hpp>
 #include <dust2/r/discrete/system.hpp>
+#include <dust2/r/discrete/filter.hpp>
+#include <dust2/r/discrete/unfilter.hpp>
 
 [[cpp11::register]]
 SEXP dust2_system_cows_alloc(cpp11::list r_pars, cpp11::sexp r_time, cpp11::sexp r_dt, cpp11::sexp r_n_particles, cpp11::sexp r_n_groups, cpp11::sexp r_seed, cpp11::sexp r_deterministic, cpp11::sexp r_n_threads) {
@@ -419,4 +473,68 @@ SEXP dust2_system_cows_update_pars(cpp11::sexp ptr, cpp11::list pars) {
 [[cpp11::register]]
 SEXP dust2_system_cows_simulate(cpp11::sexp ptr, cpp11::sexp r_times, cpp11::sexp r_index_state, bool preserve_particle_dimension, bool preserve_group_dimension) {
   return dust2::r::dust2_system_simulate<dust2::dust_discrete<cows>>(ptr, r_times, r_index_state, preserve_particle_dimension, preserve_group_dimension);
+}
+
+[[cpp11::register]]
+SEXP dust2_unfilter_cows_alloc(cpp11::list r_pars, cpp11::sexp r_time_start, cpp11::sexp r_time, cpp11::sexp r_dt, cpp11::list r_data, cpp11::sexp r_n_particles, cpp11::sexp r_n_groups, cpp11::sexp r_n_threads, cpp11::sexp r_index_state) {
+  return dust2::r::dust2_discrete_unfilter_alloc<cows>(r_pars, r_time_start, r_time, r_dt, r_data, r_n_particles, r_n_groups, r_n_threads, r_index_state);
+}
+
+[[cpp11::register]]
+SEXP dust2_filter_cows_alloc(cpp11::list r_pars, cpp11::sexp r_time_start, cpp11::sexp r_time, cpp11::sexp r_dt, cpp11::list r_data, cpp11::sexp r_n_particles, cpp11::sexp r_n_groups, cpp11::sexp r_n_threads, cpp11::sexp r_index_state, cpp11::sexp r_seed) {
+  return dust2::r::dust2_discrete_filter_alloc<cows>(r_pars, r_time_start, r_time, r_dt, r_data, r_n_particles, r_n_groups, r_n_threads, r_index_state, r_seed);
+}
+[[cpp11::register]]
+SEXP dust2_system_cows_compare_data(cpp11::sexp ptr, cpp11::list r_data, bool preserve_particle_dimension, bool preserve_group_dimension) {
+  return dust2::r::dust2_system_compare_data<dust2::dust_discrete<cows>>(ptr, r_data, preserve_particle_dimension, preserve_group_dimension);
+}
+
+[[cpp11::register]]
+SEXP dust2_unfilter_cows_update_pars(cpp11::sexp ptr, cpp11::list r_pars, cpp11::sexp r_index_group) {
+  return dust2::r::dust2_unfilter_update_pars<dust2::dust_discrete<cows>>(ptr, r_pars, r_index_group);
+}
+
+[[cpp11::register]]
+SEXP dust2_unfilter_cows_run(cpp11::sexp ptr, cpp11::sexp r_initial, bool save_history, bool adjoint, cpp11::sexp r_index_group, bool preserve_particle_dimension, bool preserve_group_dimension) {
+  return dust2::r::dust2_unfilter_run<dust2::dust_discrete<cows>>(ptr, r_initial, save_history, adjoint, r_index_group, preserve_particle_dimension, preserve_group_dimension);
+}
+
+[[cpp11::register]]
+SEXP dust2_unfilter_cows_last_history(cpp11::sexp ptr, cpp11::sexp r_index_group, bool preserve_particle_dimension, bool preserve_group_dimension) {
+  return dust2::r::dust2_unfilter_last_history<dust2::dust_discrete<cows>>(ptr, r_index_group, preserve_particle_dimension, preserve_group_dimension);
+}
+
+[[cpp11::register]]
+SEXP dust2_unfilter_cows_last_state(cpp11::sexp ptr, cpp11::sexp r_index_group, bool preserve_particle_dimension, bool preserve_group_dimension) {
+  return dust2::r::dust2_unfilter_last_state<dust2::dust_discrete<cows>>(ptr, r_index_group, preserve_particle_dimension, preserve_group_dimension);
+}
+
+[[cpp11::register]]
+SEXP dust2_filter_cows_update_pars(cpp11::sexp ptr, cpp11::list r_pars, cpp11::sexp r_index_group) {
+  return dust2::r::dust2_filter_update_pars<dust2::dust_discrete<cows>>(ptr, r_pars, r_index_group);
+}
+
+[[cpp11::register]]
+SEXP dust2_filter_cows_run(cpp11::sexp ptr, cpp11::sexp r_initial, bool save_history, cpp11::sexp index_group, bool preserve_group_dimension) {
+  return dust2::r::dust2_filter_run<dust2::dust_discrete<cows>>(ptr, r_initial, save_history, index_group, preserve_group_dimension);
+}
+
+[[cpp11::register]]
+SEXP dust2_filter_cows_last_history(cpp11::sexp ptr, cpp11::sexp r_index_group, bool select_random_particle, bool preserve_group_dimension) {
+  return dust2::r::dust2_filter_last_history<dust2::dust_discrete<cows>>(ptr, r_index_group, select_random_particle, preserve_group_dimension);
+}
+
+[[cpp11::register]]
+SEXP dust2_filter_cows_last_state(cpp11::sexp ptr, cpp11::sexp r_index_group, bool select_random_particle, bool preserve_group_dimension) {
+  return dust2::r::dust2_filter_last_state<dust2::dust_discrete<cows>>(ptr, r_index_group, select_random_particle, preserve_group_dimension);
+}
+
+[[cpp11::register]]
+SEXP dust2_filter_cows_rng_state(cpp11::sexp ptr) {
+  return dust2::r::dust2_filter_rng_state<dust2::dust_discrete<cows>>(ptr);
+}
+
+[[cpp11::register]]
+SEXP dust2_filter_cows_set_rng_state(cpp11::sexp ptr, cpp11::sexp r_rng_state) {
+  return dust2::r::dust2_filter_set_rng_state<dust2::dust_discrete<cows>>(ptr, r_rng_state);
 }

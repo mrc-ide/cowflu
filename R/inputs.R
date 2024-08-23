@@ -1,6 +1,6 @@
-cowflu_inputs <- function(alpha, beta, gamma, sigma, asc_rate, inputs) {
+cowflu_inputs <- function(alpha, beta, gamma, sigma, asc_rate, dispersion, inputs) {
   c(inputs,
-    list(alpha = alpha, beta = beta, gamma = gamma, asc_rate = asc_rate, sigma = sigma))
+    list(alpha = alpha, beta = beta, gamma = gamma, asc_rate = asc_rate, dispersion = dispersion, sigma = sigma))
 }
 
 
