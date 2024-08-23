@@ -19,7 +19,7 @@ Imports:
 LinkingTo:
     cpp11,
     dust2 (>= 0.1.1),
-    mcstate2
+    monty
 Suggests:
     knitr,
     rmarkdown,
