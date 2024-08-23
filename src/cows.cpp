@@ -19,7 +19,7 @@ void sum_over_regions(real_type *cows,
 template <typename real_type, typename rng_state_type>
 bool declare_outbreak_in_herd(real_type I, real_type N, real_type asc_rate, real_type dt, rng_state_type& rng_state) {
   const auto prevelance = I / N * asc_rate * dt;
-  const auto u = mcstate::random::random_real<double>(rng_state);
+  const auto u = monty::random::random_real<double>(rng_state);
   return u < prevelance;
 }
 
@@ -69,7 +69,7 @@ public:
     real_type incidence;
   };
 
-  using rng_state_type = mcstate::random::generator<real_type>;
+  using rng_state_type = monty::random::generator<real_type>;
 
   static auto packing_state(const shared_state& shared) {
     return dust2::packing{{"S_herd", {shared.n_herds}}, {"S_region", {shared.n_regions}}, {"E_herd", {shared.n_herds}}, {"E_region", {shared.n_regions}}, {"I_herd", {shared.n_herds}}, {"I_region", {shared.n_regions}}, {"R_herd", {shared.n_herds}}, {"R_region", {shared.n_regions}}, {"outbreak_herd", {shared.n_herds}}, {"outbreak_region", {shared.n_regions}}};
@@ -141,9 +141,9 @@ public:
         const real_type lambda = internal.N[j] == 0 ? 0 :
           (shared.beta * (I[j] / internal.N[j] + shared.alpha * (tot_I - I[j]) / (tot_N - internal.N[j])));
         const real_type p_SE = 1 - std::exp(-lambda * dt); // S to E
-        const real_type n_SE = mcstate::random::binomial<real_type>(rng_state, S[j], p_SE);
-        const real_type n_EI = mcstate::random::binomial<real_type>(rng_state, E[j], p_EI);
-        const real_type n_IR = mcstate::random::binomial<real_type>(rng_state, I[j], p_IR);
+        const real_type n_SE = monty::random::binomial<real_type>(rng_state, S[j], p_SE);
+        const real_type n_EI = monty::random::binomial<real_type>(rng_state, E[j], p_EI);
+        const real_type n_IR = monty::random::binomial<real_type>(rng_state, I[j], p_IR);
         S_next[j] = S[j] - n_SE;
         E_next[j] = E[j] + n_SE - n_EI;
         I_next[j] = I[j] + n_EI - n_IR;
@@ -176,16 +176,16 @@ public:
     // Above, we change the populations (we do this BEFORE calculating import/exports)
     for (size_t i = 0; i < shared.n_herds; ++i) {
       const auto j = shared.herd_to_region_lookup[i];
-      const auto export_cows = internal.N[i] > 0 && mcstate::random::random_real<real_type>(rng_state) < shared.p_region_export[j] * dt;
+      const auto export_cows = internal.N[i] > 0 && monty::random::random_real<real_type>(rng_state) < shared.p_region_export[j] * dt;
       if (export_cows) {
         const auto p_cow_export = shared.p_cow_export[j] * dt; // TODO: proper conversion to probability needed
         // Option 1: rejection sampling:
         size_t n_exported = 0;
         do {
-          internal.export_S[i] = mcstate::random::binomial<real_type>(rng_state, S_next[i], p_cow_export);
-          internal.export_E[i] = mcstate::random::binomial<real_type>(rng_state, E_next[i], p_cow_export);
-          internal.export_I[i] = mcstate::random::binomial<real_type>(rng_state, I_next[i], p_cow_export);
-          internal.export_R[i] = mcstate::random::binomial<real_type>(rng_state, R_next[i], p_cow_export);
+          internal.export_S[i] = monty::random::binomial<real_type>(rng_state, S_next[i], p_cow_export);
+          internal.export_E[i] = monty::random::binomial<real_type>(rng_state, E_next[i], p_cow_export);
+          internal.export_I[i] = monty::random::binomial<real_type>(rng_state, I_next[i], p_cow_export);
+          internal.export_R[i] = monty::random::binomial<real_type>(rng_state, R_next[i], p_cow_export);
           n_exported = internal.export_S[i] + internal.export_E[i] + internal.export_I[i] + internal.export_R[i];
         } while (shared.condition_on_export && n_exported == 0);
         // Option 2:
@@ -199,7 +199,7 @@ public:
         // If p is very small, then sample from a conditioned binomial
         // for the total over all cows, then draw SEIR allocation from
         // a multivartiate hypergeometric, which is not actually
-        // implemented in mcstate2 yet.
+        // implemented in monty yet.
       }
     }
 
@@ -218,10 +218,10 @@ public:
       if (export_N > 0) {
         const size_t i_region_src = shared.herd_to_region_lookup[i_src];
         const auto p = shared.movement_matrix.begin() + i_region_src * shared.n_regions;
-        const real_type u1 = mcstate::random::random_real<real_type>(rng_state);
+        const real_type u1 = monty::random::random_real<real_type>(rng_state);
         const size_t i_region_dst = std::distance(p, std::upper_bound(p, p + shared.n_regions, u1));
         const auto within_region = i_region_src == i_region_dst;
-        const real_type u2 = mcstate::random::random_real<real_type>(rng_state);
+        const real_type u2 = monty::random::random_real<real_type>(rng_state);
 
         const auto i_region_start = shared.region_start[i_region_dst];
         const auto i_region_end = shared.region_start[i_region_dst + 1];
@@ -231,8 +231,9 @@ public:
         const auto it_N = internal.N.begin() + i_region_start;
         const size_t i_dst = i_region_start + std::distance(it_N, std::upper_bound(it_N, it_N + n_herds_in_region, u2 * n_cows_in_region));
 
+        //TODO: Look at how long herds are barred from exporting for
         const bool allow_movement = within_region || state_travel_allowed || ! outbreak[i_src] ||
-          mcstate::random::hypergeometric(rng_state, internal.export_I[i_src], export_N - internal.export_I[i_src], std::min(shared.n_test, static_cast<real_type>(export_N))) == 0;
+          monty::random::hypergeometric(rng_state, internal.export_I[i_src], export_N - internal.export_I[i_src], std::min(shared.n_test, static_cast<real_type>(export_N))) == 0;
         if (allow_movement) {
           internal.import_S[i_dst] += internal.export_S[i_src];
           internal.import_E[i_dst] += internal.export_E[i_src];
