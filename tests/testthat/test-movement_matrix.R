@@ -7,7 +7,7 @@ test_that("Identity movement matrix is observed", {
   s <- dust2::dust_system_simulate(sys, times)
   s1 <- array_safe(s, c(pars$n_herds + pars$n_regions, 5, n_particles, length(times)))
 
-  s1_total <- s1[22:24, , , ]
+  s1_total <- s1[22:24, 1:4 , , ] # 1:4 because the 5th element is the number of detected outbreaks.
   s1_region_totals <- apply(s1_total, c(1, 3, 4), sum)
 
   ## Define the dimensions of s1_region_totals
