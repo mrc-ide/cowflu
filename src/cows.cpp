@@ -395,17 +395,19 @@ public:
     real_type ll = 0;
     for (size_t i = 0; i < shared.n_regions; ++i) {
       const auto observed = data.positive_tests[i];
-      const auto noise =
-        monty::random::exponential_rate(rng_state, 1e6);
-      const auto modelled_count = outbreak_region_count[i] + noise;
-      // From ?rnbinom:
-      //
-      // An alternative parametrization (often used in ecology) is by
-      // the mean mu (see above), and size, the dispersion parameter,
-      // where prob = size/(size+mu). The variance is mu + mu^2/size
-      // in this parametrization.
-      //                                         data      "size"             "mu"            log
-      ll += monty::density::negative_binomial_mu(observed, shared.dispersion, modelled_count, true);
+      if (!std::isnan(observed)) {
+        const auto noise =
+          monty::random::exponential_rate(rng_state, 1e6);
+        const auto modelled_count = outbreak_region_count[i] + noise;
+        // From ?rnbinom:
+        //
+        // An alternative parametrization (often used in ecology) is by
+        // the mean mu (see above), and size, the dispersion parameter,
+        // where prob = size/(size+mu). The variance is mu + mu^2/size
+        // in this parametrization.
+        //                                         data      "size"             "mu"            log
+        ll += monty::density::negative_binomial_mu(observed, shared.dispersion, modelled_count, true);
+      }
     }
     return ll;
   }
