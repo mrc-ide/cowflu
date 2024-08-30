@@ -18,14 +18,14 @@ Imports:
     dust2
 LinkingTo:
     cpp11,
-    dust2 (>= 0.1.2),
+    dust2 (>= 0.1.3),
     monty
 Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)
 Remotes:
-    mrc-ide/dust2
+    mrc-ide/dust2@mrc-5516
 Config/testthat/edition: 3
 Language: en-GB
 VignetteBuilder: knitr

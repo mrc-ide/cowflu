@@ -369,13 +369,10 @@ public:
     std::vector<real_type> positive_tests;
   };
 
-  static data_type build_data(cpp11::list r_data) {
+  static data_type build_data(cpp11::list r_data, const shared_state& shared) {
     auto data = static_cast<cpp11::list>(r_data);
-    // TODO: rich will change build_data to accept shared, from which
-    // we can read the number of regions.
-    const auto n_regions = 48;
-    std::vector<real_type> positive_tests(n_regions);
-    dust2::r::read_real_vector(r_data, n_regions, positive_tests.data(), "positive_tests", true);
+    std::vector<real_type> positive_tests(shared.n_regions);
+    dust2::r::read_real_vector(r_data, shared.n_regions, positive_tests.data(), "positive_tests", true);
     return data_type{positive_tests};
   }
 
