@@ -1,8 +1,8 @@
 test_that("basic epi dynamics are reasonable", {
   pars <- test_toy_inputs()
-  n_particles <- 3
+  n_particles <- 5
   times <- 0:75
-  sys <- dust2::dust_system_create(cows(), pars, n_particles = n_particles, dt = 0.25)
+  sys <- dust2::dust_system_create(cows(), pars, n_particles = n_particles, dt = 0.25, seed = 42)
   dust2::dust_system_set_state_initial(sys)
   s <- dust2::dust_system_simulate(sys, times)
   s1 <- array_safe(s, c(pars$n_herds + pars$n_regions, 5, n_particles, length(times)))
@@ -26,4 +26,7 @@ test_that("basic epi dynamics are reasonable", {
 
   ## Thom to write tests that capture this behaviour:
   s1_outbreak <- s1[, 5, , ]
+
+  y <- sys$packer_state$unpack(s)
+  y$outbreak_region
 })

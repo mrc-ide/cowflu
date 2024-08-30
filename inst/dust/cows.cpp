@@ -173,9 +173,14 @@ public:
     // Above, we change the populations (we do this BEFORE calculating import/exports)
     for (size_t i = 0; i < shared.n_herds; ++i) {
       const auto j = shared.herd_to_region_lookup[i];
+      // TODO: thom to investigate
+      //
+      // region export through logistic function, or possibly as 1 -
+      // exp(dt * p_region_export), but multiplication by dt means
+      // that we overestimate this export at large dt.
       const auto export_cows = internal.N[i] > 0 && monty::random::random_real<real_type>(rng_state) < shared.p_region_export[j] * dt;
       if (export_cows) {
-        const auto p_cow_export = shared.p_cow_export[j] * dt; // TODO: proper conversion to probability needed
+        const auto p_cow_export = shared.p_cow_export[j];
         // Option 1: rejection sampling:
         size_t n_exported = 0;
         do {
@@ -356,13 +361,12 @@ public:
   }
 
   static auto zero_every(const shared_state& shared) {
-    const auto weekly = 7;
     std::vector<size_t> reset;
     const auto offset = 4 * (shared.n_herds + shared.n_regions) + shared.n_herds;
     for (size_t i = 0; i < shared.n_regions; ++i) {
       reset.push_back(i + offset);
     }
-    return dust2::zero_every_type<real_type>{{weekly, reset}};
+    return dust2::zero_every_type<real_type>{{1, reset}};
   }
 
   struct data_type {
