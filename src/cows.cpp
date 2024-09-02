@@ -180,7 +180,8 @@ public:
       // region export through logistic function, or possibly as 1 -
       // exp(dt * p_region_export), but multiplication by dt means
       // that we overestimate this export at large dt.
-      const auto export_cows = internal.N[i] > 0 && monty::random::random_real<real_type>(rng_state) < shared.p_region_export[j] * dt;
+      const auto logistic_p_region = (shared.p_region_export[j] * dt) / std::pow((1 + std::pow((shared.p_region_export[j] * dt), 10)), 0.1);
+      const auto export_cows = internal.N[i] > 0 && monty::random::random_real<real_type>(rng_state) < logistic_p_region;
       if (export_cows) {
         const auto p_cow_export = shared.p_cow_export[j];
         // Option 1: rejection sampling:
