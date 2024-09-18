@@ -436,13 +436,13 @@ public:
     return data_type{positive_tests};
   }
 
-  static real_type compare_data(const real_type time,
-                                const real_type dt,
-                                const real_type * state,
-                                const data_type& data,
-                                const shared_state& shared,
-                                internal_state& internal,
-                                rng_state_type& rng_state) {
+  static real_type compare_data_incidence(const real_type time,
+                                          const real_type dt,
+                                          const real_type * state,
+                                          const data_type& data,
+                                          const shared_state& shared,
+                                          internal_state& internal,
+                                          rng_state_type& rng_state) {
     // As in the update function, access the count of outbreaks summed
     // over all herds in a region, this week.
     const size_t n = shared.n_herds + shared.n_regions;
@@ -469,4 +469,32 @@ public:
     }
     return ll;
   }
+
+  static real_type compare_data_survival(const real_type time,
+                                         const real_type dt,
+                                         const real_type * state,
+                                         const data_type& data,
+                                         const shared_state& shared,
+                                         internal_state& internal,
+                                         rng_state_type& rng_state) {
+    throw std::runtime_error("Not yet implemented");
+    return NA_REAL;
+  }
+
+  static real_type compare_data(const real_type time,
+                                const real_type dt,
+                                const real_type * state,
+                                const data_type& data,
+                                const shared_state& shared,
+                                internal_state& internal,
+                                rng_state_type& rng_state) {
+    if (shared.likelihood_choice == INCIDENCE) {
+      return compare_data_incidence(time, dt, state, data, shared, internal, rng_state);
+    } else if (shared.likelihood_choice == SURVIVAL) {
+      return compare_data_survival(time, dt, state, data, shared, internal, rng_state);
+    } else {
+      return NA_REAL;
+    }
+  }
+
 };
