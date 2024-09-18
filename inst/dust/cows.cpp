@@ -14,12 +14,33 @@ void sum_over_regions(real_type *cows,
   }
 }
 
+struct outbreak_detection_parameters {
+  bool proportion_only;
+  // These all fixed for now:
+  double proportion_scaling = 10;
+  double N_scaling = 0.7;
+  double strength_scaling = 0.95;
+  double I_scaling = 150;
+} outbreak_detection ;
+
+
 template <typename real_type, typename rng_state_type>
-bool declare_outbreak_in_herd(real_type I, real_type N, real_type asc_rate, real_type dt, rng_state_type& rng_state) {
-  const auto prevalence = I / N * asc_rate * dt;
-  const auto logistic_prevalence = prevalence / std::pow((1 + std::pow(prevalence, 10)), 0.1);
+bool declare_outbreak_in_herd(real_type I, real_type N, real_type asc_rate, const outbreak_detection_parameters& pars, real_type dt, rng_state_type& rng_state) {
   const auto u = monty::random::random_real<double>(rng_state);
-  return u < logistic_prevalence;
+  if (pars.proportion_only) {
+    const auto scaling = pars.proportion_scaling;
+    const auto prevalence = I / N * asc_rate * dt;
+    const auto logistic_prevalence = prevalence / std::pow((1 + std::pow(prevalence, scaling)), 1 / scaling);
+    return u < logistic_prevalence;
+  } else {
+    const auto N_scaling = pars.N_scaling;
+    const auto strength_scaling = pars.strength_scaling;
+    const auto I_scaling = pars.I_scaling;
+    const auto prevalence = (I / std::pow(N_scaling * N , strength_scaling) + I / I_scaling) * asc_rate * dt;
+    const auto bounded_prevalence = 1 - std::exp(-prevalence);
+    const auto u = monty::random::random_real<double>(rng_state);
+    return u < bounded_prevalence;
+  }
 }
 
 // [[dust2::class(cows)]]
@@ -51,6 +72,12 @@ public:
     std::vector<real_type> asc_rate;
     real_type dispersion;
     bool condition_on_export;
+    // A bunch of control for the outbreak detection, except for
+    // asc_rate which is something we want to fit to, and which varies
+    // by region (everything here holds for the whole simulation).
+    // This exists so that we can pass it all through to the
+    // declare_outbreak_in_herd function neatly.
+    outbreak_detection_parameters outbreak_detection;
   };
 
   struct internal_state {
@@ -151,7 +178,7 @@ public:
         if (outbreak[j]) {
           outbreak_next[j] = true;
         } else {
-          const auto new_outbreak = declare_outbreak_in_herd(I_next[j], internal.N[j], shared.asc_rate[i], dt, rng_state);
+          const auto new_outbreak = declare_outbreak_in_herd(I_next[j], internal.N[j], shared.asc_rate[i], shared.outbreak_detection, dt, rng_state);
           outbreak_next[j] = new_outbreak;
           if (new_outbreak) {
             n_outbreaks++;
@@ -322,7 +349,10 @@ public:
       dust2::r::read_real_vector(pars, n_regions, asc_rate.data(), "asc_rate", true);
     }
 
-    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, dispersion, condition_on_export};
+    const bool outbreak_detection_proportion_only = dust2::r::read_bool(pars, "outbreak_detection_proportion_only", false);
+    const auto outbreak_detection_parameters{outbreak_detection_proportion_only};
+
+    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, dispersion, condition_on_export, outbreak_detection_parameters};
   }
 
   static internal_state build_internal(const shared_state& shared) {
