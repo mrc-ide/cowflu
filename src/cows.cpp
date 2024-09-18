@@ -3,6 +3,27 @@
 #include <dust2/common.hpp>
 #include <numeric>
 
+enum likelihood_type { INCIDENCE, SURVIVAL };
+
+likelihood_type read_likelihood_type(cpp11::list pars, const char * name) {
+  cpp11::sexp r_likelihood_choice = pars[name];
+  if (r_likelihood_choice == R_NilValue) {
+    return INCIDENCE;
+  }
+  if (TYPEOF(r_likelihood_choice) != STRSXP || LENGTH(r_likelihood_choice) != 1) {
+    cpp11::stop("Expected '%s' to be a string", name);
+  }
+  std::string likelihood_choice = cpp11::as_cpp<std::string>(r_likelihood_choice);
+  if (likelihood_choice == "incidence") {
+    return INCIDENCE;
+  } else if (likelihood_choice == "survival") {
+    return SURVIVAL;
+  } else {
+    cpp11::stop("Invalid value for '%s': '%s'",
+                name, likelihood_choice.c_str());
+  }
+}
+
 template <typename real_type>
 void sum_over_regions(real_type *cows,
                       const size_t n_herds,
@@ -63,6 +84,7 @@ public:
     real_type alpha;
     real_type time_test;
     real_type n_test;
+    likelihood_type likelihood_choice;
     std::vector<size_t> region_start;
     std::vector<size_t> herd_to_region_lookup;
     std::vector<real_type> p_region_export;
@@ -351,10 +373,12 @@ public:
       dust2::r::read_real_vector(pars, n_regions, asc_rate.data(), "asc_rate", true);
     }
 
+    const auto likelihood_choice = read_likelihood_type(pars, "likelihood_choice");
+
     const bool outbreak_detection_proportion_only = dust2::r::read_bool(pars, "outbreak_detection_proportion_only", false);
     const auto outbreak_detection_parameters{outbreak_detection_proportion_only};
 
-    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, dispersion, condition_on_export, outbreak_detection_parameters};
+    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, likelihood_choice, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, dispersion, condition_on_export, outbreak_detection_parameters};
   }
 
   static internal_state build_internal(const shared_state& shared) {
