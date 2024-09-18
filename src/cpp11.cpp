@@ -125,10 +125,17 @@ extern "C" SEXP _cowflu_dust2_unfilter_cows_run(SEXP ptr, SEXP r_initial, SEXP s
   END_CPP11
 }
 // cows.cpp
-SEXP dust2_unfilter_cows_last_history(cpp11::sexp ptr, cpp11::sexp r_index_group, bool preserve_particle_dimension, bool preserve_group_dimension);
-extern "C" SEXP _cowflu_dust2_unfilter_cows_last_history(SEXP ptr, SEXP r_index_group, SEXP preserve_particle_dimension, SEXP preserve_group_dimension) {
+SEXP dust2_unfilter_cows_last_history(cpp11::sexp ptr, cpp11::sexp r_index_group, bool select_random_particle, bool preserve_particle_dimension, bool preserve_group_dimension);
+extern "C" SEXP _cowflu_dust2_unfilter_cows_last_history(SEXP ptr, SEXP r_index_group, SEXP select_random_particle, SEXP preserve_particle_dimension, SEXP preserve_group_dimension) {
   BEGIN_CPP11
-    return cpp11::as_sexp(dust2_unfilter_cows_last_history(cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(ptr), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_index_group), cpp11::as_cpp<cpp11::decay_t<bool>>(preserve_particle_dimension), cpp11::as_cpp<cpp11::decay_t<bool>>(preserve_group_dimension)));
+    return cpp11::as_sexp(dust2_unfilter_cows_last_history(cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(ptr), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_index_group), cpp11::as_cpp<cpp11::decay_t<bool>>(select_random_particle), cpp11::as_cpp<cpp11::decay_t<bool>>(preserve_particle_dimension), cpp11::as_cpp<cpp11::decay_t<bool>>(preserve_group_dimension)));
+  END_CPP11
+}
+// cows.cpp
+SEXP dust2_unfilter_cows_last_state(cpp11::sexp ptr, cpp11::sexp r_index_group, bool select_random_particle, bool preserve_particle_dimension, bool preserve_group_dimension);
+extern "C" SEXP _cowflu_dust2_unfilter_cows_last_state(SEXP ptr, SEXP r_index_group, SEXP select_random_particle, SEXP preserve_particle_dimension, SEXP preserve_group_dimension) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(dust2_unfilter_cows_last_state(cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(ptr), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_index_group), cpp11::as_cpp<cpp11::decay_t<bool>>(select_random_particle), cpp11::as_cpp<cpp11::decay_t<bool>>(preserve_particle_dimension), cpp11::as_cpp<cpp11::decay_t<bool>>(preserve_group_dimension)));
   END_CPP11
 }
 // cows.cpp
@@ -139,17 +146,24 @@ extern "C" SEXP _cowflu_dust2_filter_cows_update_pars(SEXP ptr, SEXP r_pars, SEX
   END_CPP11
 }
 // cows.cpp
-SEXP dust2_filter_cows_run(cpp11::sexp ptr, cpp11::sexp r_initial, bool save_history, cpp11::sexp index_group, bool preserve_group_dimension);
-extern "C" SEXP _cowflu_dust2_filter_cows_run(SEXP ptr, SEXP r_initial, SEXP save_history, SEXP index_group, SEXP preserve_group_dimension) {
+SEXP dust2_filter_cows_run(cpp11::sexp ptr, cpp11::sexp r_initial, bool save_history, bool adjoint, cpp11::sexp index_group, bool preserve_particle_dimension, bool preserve_group_dimension);
+extern "C" SEXP _cowflu_dust2_filter_cows_run(SEXP ptr, SEXP r_initial, SEXP save_history, SEXP adjoint, SEXP index_group, SEXP preserve_particle_dimension, SEXP preserve_group_dimension) {
   BEGIN_CPP11
-    return cpp11::as_sexp(dust2_filter_cows_run(cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(ptr), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_initial), cpp11::as_cpp<cpp11::decay_t<bool>>(save_history), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(index_group), cpp11::as_cpp<cpp11::decay_t<bool>>(preserve_group_dimension)));
+    return cpp11::as_sexp(dust2_filter_cows_run(cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(ptr), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_initial), cpp11::as_cpp<cpp11::decay_t<bool>>(save_history), cpp11::as_cpp<cpp11::decay_t<bool>>(adjoint), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(index_group), cpp11::as_cpp<cpp11::decay_t<bool>>(preserve_particle_dimension), cpp11::as_cpp<cpp11::decay_t<bool>>(preserve_group_dimension)));
   END_CPP11
 }
 // cows.cpp
-SEXP dust2_filter_cows_last_history(cpp11::sexp ptr, cpp11::sexp r_index_group, bool select_random_particle, bool preserve_group_dimension);
-extern "C" SEXP _cowflu_dust2_filter_cows_last_history(SEXP ptr, SEXP r_index_group, SEXP select_random_particle, SEXP preserve_group_dimension) {
+SEXP dust2_filter_cows_last_history(cpp11::sexp ptr, cpp11::sexp r_index_group, bool select_random_particle, bool preserve_particle_dimension, bool preserve_group_dimension);
+extern "C" SEXP _cowflu_dust2_filter_cows_last_history(SEXP ptr, SEXP r_index_group, SEXP select_random_particle, SEXP preserve_particle_dimension, SEXP preserve_group_dimension) {
   BEGIN_CPP11
-    return cpp11::as_sexp(dust2_filter_cows_last_history(cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(ptr), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_index_group), cpp11::as_cpp<cpp11::decay_t<bool>>(select_random_particle), cpp11::as_cpp<cpp11::decay_t<bool>>(preserve_group_dimension)));
+    return cpp11::as_sexp(dust2_filter_cows_last_history(cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(ptr), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_index_group), cpp11::as_cpp<cpp11::decay_t<bool>>(select_random_particle), cpp11::as_cpp<cpp11::decay_t<bool>>(preserve_particle_dimension), cpp11::as_cpp<cpp11::decay_t<bool>>(preserve_group_dimension)));
+  END_CPP11
+}
+// cows.cpp
+SEXP dust2_filter_cows_last_state(cpp11::sexp ptr, cpp11::sexp r_index_group, bool select_random_particle, bool preserve_particle_dimension, bool preserve_group_dimension);
+extern "C" SEXP _cowflu_dust2_filter_cows_last_state(SEXP ptr, SEXP r_index_group, SEXP select_random_particle, SEXP preserve_particle_dimension, SEXP preserve_group_dimension) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(dust2_filter_cows_last_state(cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(ptr), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_index_group), cpp11::as_cpp<cpp11::decay_t<bool>>(select_random_particle), cpp11::as_cpp<cpp11::decay_t<bool>>(preserve_particle_dimension), cpp11::as_cpp<cpp11::decay_t<bool>>(preserve_group_dimension)));
   END_CPP11
 }
 // cows.cpp
@@ -170,9 +184,10 @@ extern "C" SEXP _cowflu_dust2_filter_cows_set_rng_state(SEXP ptr, SEXP r_rng_sta
 extern "C" {
 static const R_CallMethodDef CallEntries[] = {
     {"_cowflu_dust2_filter_cows_alloc",             (DL_FUNC) &_cowflu_dust2_filter_cows_alloc,             10},
-    {"_cowflu_dust2_filter_cows_last_history",      (DL_FUNC) &_cowflu_dust2_filter_cows_last_history,       4},
+    {"_cowflu_dust2_filter_cows_last_history",      (DL_FUNC) &_cowflu_dust2_filter_cows_last_history,       5},
+    {"_cowflu_dust2_filter_cows_last_state",        (DL_FUNC) &_cowflu_dust2_filter_cows_last_state,         5},
     {"_cowflu_dust2_filter_cows_rng_state",         (DL_FUNC) &_cowflu_dust2_filter_cows_rng_state,          1},
-    {"_cowflu_dust2_filter_cows_run",               (DL_FUNC) &_cowflu_dust2_filter_cows_run,                5},
+    {"_cowflu_dust2_filter_cows_run",               (DL_FUNC) &_cowflu_dust2_filter_cows_run,                7},
     {"_cowflu_dust2_filter_cows_set_rng_state",     (DL_FUNC) &_cowflu_dust2_filter_cows_set_rng_state,      2},
     {"_cowflu_dust2_filter_cows_update_pars",       (DL_FUNC) &_cowflu_dust2_filter_cows_update_pars,        3},
     {"_cowflu_dust2_system_cows_alloc",             (DL_FUNC) &_cowflu_dust2_system_cows_alloc,              8},
@@ -189,7 +204,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_cowflu_dust2_system_cows_time",              (DL_FUNC) &_cowflu_dust2_system_cows_time,               1},
     {"_cowflu_dust2_system_cows_update_pars",       (DL_FUNC) &_cowflu_dust2_system_cows_update_pars,        2},
     {"_cowflu_dust2_unfilter_cows_alloc",           (DL_FUNC) &_cowflu_dust2_unfilter_cows_alloc,            9},
-    {"_cowflu_dust2_unfilter_cows_last_history",    (DL_FUNC) &_cowflu_dust2_unfilter_cows_last_history,     4},
+    {"_cowflu_dust2_unfilter_cows_last_history",    (DL_FUNC) &_cowflu_dust2_unfilter_cows_last_history,     5},
+    {"_cowflu_dust2_unfilter_cows_last_state",      (DL_FUNC) &_cowflu_dust2_unfilter_cows_last_state,       5},
     {"_cowflu_dust2_unfilter_cows_run",             (DL_FUNC) &_cowflu_dust2_unfilter_cows_run,              7},
     {"_cowflu_dust2_unfilter_cows_update_pars",     (DL_FUNC) &_cowflu_dust2_unfilter_cows_update_pars,      3},
     {NULL, NULL, 0}
