@@ -16,13 +16,15 @@ void sum_over_regions(real_type *cows,
 
 template <typename real_type, typename rng_state_type>
 bool declare_outbreak_in_herd(real_type I, real_type N, real_type asc_rate, real_type dt, rng_state_type& rng_state) {
-  const auto prevelance = 1 - std::exp(I / N * asc_rate * dt);
+  const auto prevalence = I / N * asc_rate * dt;
+  const auto logistic_prevalence = prevalence / std::pow((1 + std::pow(prevalence, 10)), 0.1);
   const auto u = monty::random::random_real<double>(rng_state);
-  return u < prevelance;
+  return u < logistic_prevalence;
 }
 
 // [[dust2::class(cows)]]
 // [[dust2::time_type(discrete)]]
+// [[dust2::has_compare()]]
 class cows {
 public:
   cows() = delete;
@@ -47,6 +49,7 @@ public:
     real_type start_count;
     size_t start_herd;
     std::vector<real_type> asc_rate;
+    real_type dispersion;
     bool condition_on_export;
   };
 
@@ -61,10 +64,6 @@ public:
     std::vector<real_type> import_E;
     std::vector<real_type> import_I;
     std::vector<real_type> import_R;
-  };
-
-  struct data_type {
-    real_type incidence;
   };
 
   using rng_state_type = monty::random::generator<real_type>;
@@ -174,9 +173,15 @@ public:
     // Above, we change the populations (we do this BEFORE calculating import/exports)
     for (size_t i = 0; i < shared.n_herds; ++i) {
       const auto j = shared.herd_to_region_lookup[i];
-      const auto export_cows = internal.N[i] > 0 && monty::random::random_real<real_type>(rng_state) < shared.p_region_export[j] * dt;
+      // TODO: thom to investigate
+      //
+      // region export through logistic function, or possibly as 1 -
+      // exp(dt * p_region_export), but multiplication by dt means
+      // that we overestimate this export at large dt.
+      const auto logistic_p_region = (shared.p_region_export[j] * dt) / std::pow((1 + std::pow((shared.p_region_export[j] * dt), 10)), 0.1);
+      const auto export_cows = internal.N[i] > 0 && monty::random::random_real<real_type>(rng_state) < logistic_p_region;
       if (export_cows) {
-        const auto p_cow_export = shared.p_cow_export[j] * dt; // TODO: proper conversion to probability needed
+        const auto p_cow_export = shared.p_cow_export[j];
         // Option 1: rejection sampling:
         size_t n_exported = 0;
         do {
@@ -230,8 +235,9 @@ public:
         const size_t i_dst = i_region_start + std::distance(it_N, std::upper_bound(it_N, it_N + n_herds_in_region, u2 * n_cows_in_region));
 
         //TODO: Look at how long herds are barred from exporting for
-        const bool allow_movement = within_region || state_travel_allowed || ! outbreak[i_src] ||
+        const bool test_herds = within_region || state_travel_allowed ||
           monty::random::hypergeometric(rng_state, internal.export_I[i_src], export_N - internal.export_I[i_src], std::min(shared.n_test, static_cast<real_type>(export_N))) == 0;
+        const bool allow_movement = test_herds && ! outbreak[i_src];
         if (allow_movement) {
           internal.import_S[i_dst] += internal.export_S[i_src];
           internal.import_E[i_dst] += internal.export_E[i_src];
@@ -304,6 +310,7 @@ public:
     const real_type gamma = dust2::r::read_real(pars, "gamma");
     const real_type alpha = dust2::r::read_real(pars, "alpha");
     const real_type sigma = dust2::r::read_real(pars, "sigma");
+    const real_type dispersion = dust2::r::read_real(pars, "dispersion");
 
     cpp11::sexp r_asc_rate = pars["asc_rate"];
     std::vector<real_type> asc_rate(n_regions);
@@ -315,7 +322,7 @@ public:
       dust2::r::read_real_vector(pars, n_regions, asc_rate.data(), "asc_rate", true);
     }
 
-    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, condition_on_export};
+    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, dispersion, condition_on_export};
   }
 
   static internal_state build_internal(const shared_state& shared) {
@@ -338,6 +345,15 @@ public:
     shared.gamma = dust2::r::read_real(pars, "gamma", shared.gamma);
     shared.alpha = dust2::r::read_real(pars, "alpha", shared.alpha);
     shared.sigma = dust2::r::read_real(pars, "sigma", shared.sigma);
+    shared.dispersion = dust2::r::read_real(pars, "dispersion", shared.dispersion);
+
+    if (LENGTH(pars["asc_rate"]) == 1) {
+      std::fill(shared.asc_rate.begin(),
+                shared.asc_rate.end(),
+                dust2::r::read_real(pars, "asc_rate"));
+    } else {
+      dust2::r::read_real_vector(pars, shared.n_regions, shared.asc_rate.data(), "asc_rate", false);
+    }
   }
 
   // This is a reasonable default implementation in the no-internal
@@ -347,12 +363,56 @@ public:
   }
 
   static auto zero_every(const shared_state& shared) {
-    const auto weekly = 7;
     std::vector<size_t> reset;
     const auto offset = 4 * (shared.n_herds + shared.n_regions) + shared.n_herds;
     for (size_t i = 0; i < shared.n_regions; ++i) {
       reset.push_back(i + offset);
     }
-    return dust2::zero_every_type<real_type>{{weekly, reset}};
+    return dust2::zero_every_type<real_type>{{1, reset}};
+  }
+
+  struct data_type {
+    std::vector<real_type> positive_tests;
+  };
+
+  static data_type build_data(cpp11::list r_data, const shared_state& shared) {
+    auto data = static_cast<cpp11::list>(r_data);
+    std::vector<real_type> positive_tests(shared.n_regions);
+    dust2::r::read_real_vector(r_data, shared.n_regions, positive_tests.data(), "positive_tests", true);
+    return data_type{positive_tests};
+  }
+
+  static real_type compare_data(const real_type time,
+                                const real_type dt,
+                                const real_type * state,
+                                const data_type& data,
+                                const shared_state& shared,
+                                internal_state& internal,
+                                rng_state_type& rng_state) {
+    // As in the update function, access the count of outbreaks summed
+    // over all herds in a region, this week.
+    const size_t n = shared.n_herds + shared.n_regions;
+    const auto* outbreak_region_count = state + 4 * n + shared.n_herds;
+
+    // Negative binomial likelihood for each region, then sum these
+    // (logged) over all regions
+    real_type ll = 0;
+    for (size_t i = 0; i < shared.n_regions; ++i) {
+      const auto observed = data.positive_tests[i];
+      if (!std::isnan(observed)) {
+        const auto noise =
+          monty::random::exponential_rate(rng_state, 1e6);
+        const auto modelled_count = outbreak_region_count[i] + noise;
+        // From ?rnbinom:
+        //
+        // An alternative parametrization (often used in ecology) is by
+        // the mean mu (see above), and size, the dispersion parameter,
+        // where prob = size/(size+mu). The variance is mu + mu^2/size
+        // in this parametrization.
+        //                                         data      "size"             "mu"            log
+        ll += monty::density::negative_binomial_mu(observed, shared.dispersion, modelled_count, true);
+      }
+    }
+    return ll;
   }
 };

@@ -1,9 +1,12 @@
-cowflu_inputs <- function(alpha, beta, gamma, sigma, asc_rate, inputs) {
+cowflu_inputs <- function(alpha, beta, gamma, sigma, asc_rate, dispersion, inputs) {
   c(inputs,
-    list(alpha = alpha, beta = beta, gamma = gamma, asc_rate = asc_rate, sigma = sigma))
+    list(alpha = alpha, beta = beta, gamma = gamma, asc_rate = asc_rate, dispersion = dispersion, sigma = sigma))
 }
 
 
+## p_region_export is the *daily* probability of export in the args to
+## this function, but we will convert it into weekly.  Probably the
+## best place to do this is in processing the movement data?
 cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
                                 movement_matrix, start_herd = 26940, #26940 is an average-sized herd in Texas
                                 start_count = 5,
@@ -53,7 +56,7 @@ cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
   list(n_herds = n_herds,
        n_regions = n_regions,
        region_start = region_start,
-       p_region_export = p_region_export,
+       p_region_export = 1 - exp(-p_region_export * 7), # or 1 - p_region_export^7, but that has a different error
        p_cow_export = p_cow_export,
        n_cows_per_herd = n_cows_per_herd,
        movement_matrix = movement_matrix_cumulative,

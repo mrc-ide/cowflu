@@ -124,6 +124,9 @@ process_movement <- function(root, herd_size_data, redownload = FALSE) {
 
   p_region_export <- sapply(1:48, function(i) sum(Mean_Cattle_export_shipments[i,]) / (365 * herd_size_data$n_herds_per_region[i]))
 
+  ## Convert this daily probability to a weekly probability of export:
+  p_region_export <- 1 - (1 - p_region_export)^7
+
   ## p_cow_export - a vector of length N_regions
   ## The probability that, if a herd is exporting, a single head of cattle will be exported. Thus, it's the proportion of the herd that will be exported.
   ## Two ways to do this:
