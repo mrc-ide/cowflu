@@ -25,6 +25,11 @@ likelihood_type read_likelihood_type(cpp11::list pars, const char * name) {
 }
 
 template <typename real_type>
+real_type nudge(bool x, real_type eps) {
+  return x == 0 ? eps : 1 - eps;
+}
+
+template <typename real_type>
 void sum_over_regions(real_type *cows,
                       const size_t n_herds,
                       const size_t n_regions,
@@ -429,13 +434,22 @@ public:
 
   struct data_type {
     std::vector<real_type> positive_tests;
+    std::vector<real_type> outbreak_detected;
   };
 
   static data_type build_data(cpp11::list r_data, const shared_state& shared) {
     auto data = static_cast<cpp11::list>(r_data);
-    std::vector<real_type> positive_tests(shared.n_regions);
-    dust2::r::read_real_vector(r_data, shared.n_regions, positive_tests.data(), "positive_tests", true);
-    return data_type{positive_tests};
+    const auto n_regions = shared.n_regions;
+    std::vector<real_type> positive_tests;
+    std::vector<real_type> outbreak_detected;
+    if (shared.likelihood_choice == INCIDENCE) {
+      positive_tests.resize(n_regions);
+      dust2::r::read_real_vector(r_data, shared.n_regions, positive_tests.data(), "positive_tests", true);
+    } else {
+      outbreak_detected.resize(n_regions);
+      dust2::r::read_real_vector(r_data, shared.n_regions, outbreak_detected.data(), "outbreak_detected", true);
+    }
+    return data_type{positive_tests, outbreak_detected};
   }
 
   static real_type compare_data_incidence(const real_type time,
@@ -479,8 +493,29 @@ public:
                                          const shared_state& shared,
                                          internal_state& internal,
                                          rng_state_type& rng_state) {
-    throw std::runtime_error("Not yet implemented");
-    return NA_REAL;
+    real_type ll = 0;
+
+    const size_t n = shared.n_herds + shared.n_regions;
+    const real_type* outbreak = state + 4 * n;
+    const real_type eps = 1e-6;
+    for (size_t i = 0; i < shared.n_regions; ++i) {
+      const size_t i_start = shared.region_start[i];
+      const size_t i_end = shared.region_start[i + 1];
+
+      // Look across every herd in this region, and see if any of them
+      // have detected an outbreak.
+      const bool i_outbreak = std::any_of(outbreak + i_start, outbreak + i_end, [](auto v) { return v > 0; });
+
+      // Expressed as a special case of a binomial with n = 1, following Wikipedia:
+      // https://en.wikipedia.org/wiki/Bernoulli_distribution#Properties
+      //
+      // This could be simplified a bit probably but the logs remain.
+      const real_type p = nudge(i_outbreak, eps);
+      const real_type k = data.outbreak_detected[i];
+      ll += k * std::log(p) + (1 - k) * std::log(1 - p);
+    }
+
+    return ll;
   }
 
   static real_type compare_data(const real_type time,
