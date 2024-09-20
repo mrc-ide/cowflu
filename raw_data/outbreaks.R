@@ -2,12 +2,13 @@
 ## This script processes the raw data acquired from:
 ## https://www.aphis.usda.gov/livestock-poultry-disease/avian/avian-influenza/hpai-detections/hpai-confirmed-cases-livestock
 ## Then downloading the csv of all outbreaks by state.
+## Select "Download Data" in top right of widget. Then "Table details by date".
 ## Then ensure the file is in comma-separated form.
 ## This script then processes that file.
 
 process_outbreak_data <- function(root, usda_data){
   # Define path to data
-  outbreak_data_path <- file.path(root, "raw_data", "Raw_Outbreaks_Data.csv")
+  outbreak_data_path <- file.path(root, "raw_data", "Raw_Outbreaks_Data_Sep20.csv")
 
   # Load the data
   outbreak_data <- read.csv(outbreak_data_path)
