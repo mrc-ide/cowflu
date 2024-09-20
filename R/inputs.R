@@ -1,6 +1,6 @@
 cowflu_inputs <- function(alpha, beta, gamma, sigma, asc_rate, dispersion, inputs) {
   c(inputs,
-    list(alpha = alpha, beta = beta, gamma = gamma, asc_rate = asc_rate, dispersion = dispersion, sigma = sigma))
+    list(alpha = alpha, beta = beta, gamma = gamma, asc_rate = asc_rate, sigma = sigma, dispersion = dispersion))
 }
 
 
@@ -55,6 +55,10 @@ cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
     cli::cli_abort(
       "Expected 'condition_on_export' to be TRUE or FALSE")
   }
+  if (! likelihood_choice %in% c("incidence", "survival")) {
+    cli::cli_abort(
+      "Expected 'likelihood choice' to be 'incidence' or 'survival'")
+  }
   ## This line will transpose the matrix, and change the original rows (now columns) to a cumulative sum.
   movement_matrix_cumulative <- apply(movement_matrix, 1, cumsum)
 
@@ -70,5 +74,6 @@ cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
        index = rep(seq_along(n_herds_per_region), n_herds_per_region),
        time_test = time_test,
        n_test = n_test,
-       condition_on_export = condition_on_export)
+       condition_on_export = condition_on_export,
+       likelihood_choice = likelihood_choice)
 }
