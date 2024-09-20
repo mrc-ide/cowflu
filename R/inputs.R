@@ -12,6 +12,7 @@ cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
                                 start_count = 5,
                                 time_test = 136, n_test = 30,
                                 condition_on_export = TRUE,
+                                likelihood_choice = "incidence",
                                 n_herds_per_region = NULL,
                                 n_cows_per_herd = NULL) {
   n_herds_per_region <- n_herds_per_region %||% usda_data$n_herds_per_region
@@ -50,6 +51,10 @@ cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
       "Expected rows of 'movement_matrix' to sum to 1",
       i = "Check rows {which(err)}")
   }
+  if (! is.logical(condition_on_export)) {
+    cli::cli_abort(
+      "Expected 'condition_on_export' to be TRUE or FALSE")
+  }
   ## This line will transpose the matrix, and change the original rows (now columns) to a cumulative sum.
   movement_matrix_cumulative <- apply(movement_matrix, 1, cumsum)
 
@@ -64,5 +69,6 @@ cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
        start_count = start_count,
        index = rep(seq_along(n_herds_per_region), n_herds_per_region),
        time_test = time_test,
-       n_test = n_test)
+       n_test = n_test,
+       condition_on_export = condition_on_export)
 }
