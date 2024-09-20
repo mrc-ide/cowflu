@@ -352,7 +352,7 @@ public:
     std::vector<real_type> movement_matrix(n_regions * n_regions);
     dust2::r::read_real_vector(pars, n_regions * n_regions, movement_matrix.data(), "movement_matrix", true);
 
-    const bool condition_on_export = dust2::r::read_bool(pars, "condition_on_export", false);
+    const bool condition_on_export = dust2::r::read_bool(pars, "condition_on_export", true);
 
     const real_type time_test = dust2::r::read_real(pars, "time_test", 30);
     const real_type n_test = dust2::r::read_real(pars, "n_test", 30);
