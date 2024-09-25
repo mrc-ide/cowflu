@@ -23,6 +23,7 @@ LinkingTo:
 Suggests:
     knitr,
     rmarkdown,
+    ggplot2,
     testthat (>= 3.0.0)
 Remotes:
     mrc-ide/dust2
