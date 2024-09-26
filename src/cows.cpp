@@ -3,6 +3,32 @@
 #include <dust2/common.hpp>
 #include <numeric>
 
+enum likelihood_type { INCIDENCE, SURVIVAL };
+
+likelihood_type read_likelihood_type(cpp11::list pars, const char * name) {
+  cpp11::sexp r_likelihood_choice = pars[name];
+  if (r_likelihood_choice == R_NilValue) {
+    return INCIDENCE;
+  }
+  if (TYPEOF(r_likelihood_choice) != STRSXP || LENGTH(r_likelihood_choice) != 1) {
+    cpp11::stop("Expected '%s' to be a string", name);
+  }
+  std::string likelihood_choice = cpp11::as_cpp<std::string>(r_likelihood_choice);
+  if (likelihood_choice == "incidence") {
+    return INCIDENCE;
+  } else if (likelihood_choice == "survival") {
+    return SURVIVAL;
+  } else {
+    cpp11::stop("Invalid value for '%s': '%s'",
+                name, likelihood_choice.c_str());
+  }
+}
+
+template <typename real_type>
+real_type nudge(bool x, real_type eps) {
+  return x == 0 ? eps : 1 - eps;
+}
+
 template <typename real_type>
 void sum_over_regions(real_type *cows,
                       const size_t n_herds,
@@ -16,12 +42,33 @@ void sum_over_regions(real_type *cows,
   }
 }
 
+struct outbreak_detection_parameters {
+  bool proportion_only;
+  // These all fixed for now:
+  double proportion_scaling = 10;
+  double N_scaling = 0.7;
+  double strength_scaling = 0.95;
+  double I_scaling = 150;
+} outbreak_detection ;
+
+
 template <typename real_type, typename rng_state_type>
-bool declare_outbreak_in_herd(real_type I, real_type N, real_type asc_rate, real_type dt, rng_state_type& rng_state) {
-  const auto prevalence = I / N * asc_rate * dt;
-  const auto logistic_prevalence = prevalence / std::pow((1 + std::pow(prevalence, 10)), 0.1);
+bool declare_outbreak_in_herd(real_type I, real_type N, real_type asc_rate, const outbreak_detection_parameters& pars, real_type dt, rng_state_type& rng_state) {
   const auto u = monty::random::random_real<double>(rng_state);
-  return u < logistic_prevalence;
+  if (pars.proportion_only) {
+    const auto scaling = pars.proportion_scaling;
+    const auto prevalence = I / N * asc_rate * dt;
+    const auto logistic_prevalence = prevalence / std::pow((1 + std::pow(prevalence, scaling)), 1 / scaling);
+    return u < logistic_prevalence;
+  } else {
+    const auto N_scaling = pars.N_scaling;
+    const auto strength_scaling = pars.strength_scaling;
+    const auto I_scaling = pars.I_scaling;
+    const auto prevalence = (I / std::pow(N_scaling * N , strength_scaling) + I / I_scaling) * asc_rate * dt;
+    const auto bounded_prevalence = 1 - std::exp(-prevalence);
+    const auto u = monty::random::random_real<double>(rng_state);
+    return u < bounded_prevalence;
+  }
 }
 
 // [[dust2::class(cows)]]
@@ -42,6 +89,7 @@ public:
     real_type alpha;
     real_type time_test;
     real_type n_test;
+    likelihood_type likelihood_choice;
     std::vector<size_t> region_start;
     std::vector<size_t> herd_to_region_lookup;
     std::vector<real_type> p_region_export;
@@ -53,6 +101,12 @@ public:
     std::vector<real_type> asc_rate;
     real_type dispersion;
     bool condition_on_export;
+    // A bunch of control for the outbreak detection, except for
+    // asc_rate which is something we want to fit to, and which varies
+    // by region (everything here holds for the whole simulation).
+    // This exists so that we can pass it all through to the
+    // declare_outbreak_in_herd function neatly.
+    outbreak_detection_parameters outbreak_detection;
   };
 
   struct internal_state {
@@ -153,7 +207,7 @@ public:
         if (outbreak[j]) {
           outbreak_next[j] = true;
         } else {
-          const auto new_outbreak = declare_outbreak_in_herd(I_next[j], internal.N[j], shared.asc_rate[i], dt, rng_state);
+          const auto new_outbreak = declare_outbreak_in_herd(I_next[j], internal.N[j], shared.asc_rate[i], shared.outbreak_detection, dt, rng_state);
           outbreak_next[j] = new_outbreak;
           if (new_outbreak) {
             n_outbreaks++;
@@ -300,7 +354,7 @@ public:
     std::vector<real_type> movement_matrix(n_regions * n_regions);
     dust2::r::read_real_vector(pars, n_regions * n_regions, movement_matrix.data(), "movement_matrix", true);
 
-    const bool condition_on_export = dust2::r::read_bool(pars, "condition_on_export", false);
+    const bool condition_on_export = dust2::r::read_bool(pars, "condition_on_export", true);
 
     const real_type time_test = dust2::r::read_real(pars, "time_test", 30);
     const real_type n_test = dust2::r::read_real(pars, "n_test", 30);
@@ -324,7 +378,12 @@ public:
       dust2::r::read_real_vector(pars, n_regions, asc_rate.data(), "asc_rate", true);
     }
 
-    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, dispersion, condition_on_export};
+    const auto likelihood_choice = read_likelihood_type(pars, "likelihood_choice");
+
+    const bool outbreak_detection_proportion_only = dust2::r::read_bool(pars, "outbreak_detection_proportion_only", false);
+    const auto outbreak_detection_parameters{outbreak_detection_proportion_only};
+
+    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, likelihood_choice, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, dispersion, condition_on_export, outbreak_detection_parameters};
   }
 
   static internal_state build_internal(const shared_state& shared) {
@@ -375,22 +434,31 @@ public:
 
   struct data_type {
     std::vector<real_type> positive_tests;
+    std::vector<real_type> outbreak_detected;
   };
 
   static data_type build_data(cpp11::list r_data, const shared_state& shared) {
     auto data = static_cast<cpp11::list>(r_data);
-    std::vector<real_type> positive_tests(shared.n_regions);
-    dust2::r::read_real_vector(r_data, shared.n_regions, positive_tests.data(), "positive_tests", true);
-    return data_type{positive_tests};
+    const auto n_regions = shared.n_regions;
+    std::vector<real_type> positive_tests;
+    std::vector<real_type> outbreak_detected;
+    if (shared.likelihood_choice == INCIDENCE) {
+      positive_tests.resize(n_regions);
+      dust2::r::read_real_vector(r_data, shared.n_regions, positive_tests.data(), "positive_tests", true);
+    } else {
+      outbreak_detected.resize(n_regions);
+      dust2::r::read_real_vector(r_data, shared.n_regions, outbreak_detected.data(), "outbreak_detected", true);
+    }
+    return data_type{positive_tests, outbreak_detected};
   }
 
-  static real_type compare_data(const real_type time,
-                                const real_type dt,
-                                const real_type * state,
-                                const data_type& data,
-                                const shared_state& shared,
-                                internal_state& internal,
-                                rng_state_type& rng_state) {
+  static real_type compare_data_incidence(const real_type time,
+                                          const real_type dt,
+                                          const real_type * state,
+                                          const data_type& data,
+                                          const shared_state& shared,
+                                          internal_state& internal,
+                                          rng_state_type& rng_state) {
     // As in the update function, access the count of outbreaks summed
     // over all herds in a region, this week.
     const size_t n = shared.n_herds + shared.n_regions;
@@ -417,6 +485,55 @@ public:
     }
     return ll;
   }
+
+  static real_type compare_data_survival(const real_type time,
+                                         const real_type dt,
+                                         const real_type * state,
+                                         const data_type& data,
+                                         const shared_state& shared,
+                                         internal_state& internal,
+                                         rng_state_type& rng_state) {
+    real_type ll = 0;
+
+    const size_t n = shared.n_herds + shared.n_regions;
+    const real_type* outbreak = state + 4 * n;
+    const real_type eps = 1e-6;
+    for (size_t i = 0; i < shared.n_regions; ++i) {
+      const size_t i_start = shared.region_start[i];
+      const size_t i_end = shared.region_start[i + 1];
+
+      // Look across every herd in this region, and see if any of them
+      // have detected an outbreak.
+      const bool i_outbreak = std::any_of(outbreak + i_start, outbreak + i_end, [](auto v) { return v > 0; });
+
+      // Expressed as a special case of a binomial with n = 1, following Wikipedia:
+      // https://en.wikipedia.org/wiki/Bernoulli_distribution#Properties
+      //
+      // This could be simplified a bit probably but the logs remain.
+      const real_type p = nudge(i_outbreak, eps);
+      const real_type k = data.outbreak_detected[i];
+      ll += k * std::log(p) + (1 - k) * std::log(1 - p);
+    }
+
+    return ll;
+  }
+
+  static real_type compare_data(const real_type time,
+                                const real_type dt,
+                                const real_type * state,
+                                const data_type& data,
+                                const shared_state& shared,
+                                internal_state& internal,
+                                rng_state_type& rng_state) {
+    if (shared.likelihood_choice == INCIDENCE) {
+      return compare_data_incidence(time, dt, state, data, shared, internal, rng_state);
+    } else if (shared.likelihood_choice == SURVIVAL) {
+      return compare_data_survival(time, dt, state, data, shared, internal, rng_state);
+    } else {
+      return NA_REAL;
+    }
+  }
+
 };
 
 #include <cpp11.hpp>

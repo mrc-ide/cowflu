@@ -2,7 +2,7 @@
 test_toy_inputs <- function(alpha = 0.2, beta = 0.9, gamma = 0.1,
                             sigma = 0.125, start_count = 5, asc_rate = 1, dispersion = 1,
                             movement_matrix = cbind(c(.6, .2, .2), c(.2, .6, .2), c(.2, .2, .6)),
-                            time_test = 10000) {
+                            time_test = 10000, likelihood_choice = "survival") {
   cowflu_inputs(
     alpha = alpha,
     beta = beta,
@@ -18,5 +18,6 @@ test_toy_inputs <- function(alpha = 0.2, beta = 0.9, gamma = 0.1,
       movement_matrix = movement_matrix,
       time_test = time_test,
       start_herd = 4,
-      start_count = start_count))
+      start_count = start_count,
+      likelihood_choice = likelihood_choice))
 }

@@ -1,6 +1,6 @@
 Package: cowflu
 Title: Cows With Flu
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: c(person("Thomas", "Rawson", role = c("aut", "cre"),
                     email = "t.rawson@imperial.ac.uk"),
              person("Rich", "FitzJohn", role = "aut"),
@@ -23,6 +23,8 @@ LinkingTo:
 Suggests:
     knitr,
     rmarkdown,
+    ggplot2,
+    gridExtra,
     testthat (>= 3.0.0)
 Remotes:
     mrc-ide/dust2

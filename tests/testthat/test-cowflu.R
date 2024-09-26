@@ -44,3 +44,17 @@ test_that("basic epi dynamics are reasonable", {
   y <- sys$packer_state$unpack(s)
   y$outbreak_region
 })
+
+
+test_that("likelihood choice is validated", {
+  pars <- test_toy_inputs()
+  n_particles <- 5
+  pars$likelihood_choice <- TRUE
+  expect_error(
+    dust2::dust_system_create(cows(), pars, n_particles = 1),
+    "Expected 'likelihood_choice' to be a string")
+  pars$likelihood_choice <- "banana"
+  expect_error(
+    dust2::dust_system_create(cows(), pars, n_particles = 1),
+    "Invalid value for 'likelihood_choice': 'banana'")
+})
