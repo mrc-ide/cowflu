@@ -39,7 +39,7 @@ plot_param_traj <- function(samples, one_panel = FALSE){
   n_pars <- dim(samples$par)[1]
   n_samples <- dim(samples$par)[2]
   n_chains <- dim(samples$par)[3]
-  param_names <- row.names(example_samples$pars)
+  param_names <- row.names(samples$pars)
   plot_list <- list()
 
   for(i in 1:length(param_names)){
@@ -88,7 +88,7 @@ plot_param_posterior <- function(samples, one_panel = FALSE){
   n_pars <- dim(samples$par)[1]
   n_samples <- dim(samples$par)[2]
   n_chains <- dim(samples$par)[3]
-  param_names <- row.names(example_samples$pars)
+  param_names <- row.names(samples$pars)
   plot_list <- list()
 
   for(i in 1:length(param_names)){
