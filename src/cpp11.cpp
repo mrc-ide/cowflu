@@ -6,10 +6,10 @@
 #include <R_ext/Visibility.h>
 
 // cows.cpp
-SEXP dust2_system_cows_alloc(cpp11::list r_pars, cpp11::sexp r_time, cpp11::sexp r_dt, cpp11::sexp r_n_particles, cpp11::sexp r_n_groups, cpp11::sexp r_seed, cpp11::sexp r_deterministic, cpp11::sexp r_n_threads);
-extern "C" SEXP _cowflu_dust2_system_cows_alloc(SEXP r_pars, SEXP r_time, SEXP r_dt, SEXP r_n_particles, SEXP r_n_groups, SEXP r_seed, SEXP r_deterministic, SEXP r_n_threads) {
+SEXP dust2_system_cows_alloc(cpp11::list r_pars, cpp11::sexp r_time, cpp11::list r_time_control, cpp11::sexp r_n_particles, cpp11::sexp r_n_groups, cpp11::sexp r_seed, cpp11::sexp r_deterministic, cpp11::sexp r_n_threads);
+extern "C" SEXP _cowflu_dust2_system_cows_alloc(SEXP r_pars, SEXP r_time, SEXP r_time_control, SEXP r_n_particles, SEXP r_n_groups, SEXP r_seed, SEXP r_deterministic, SEXP r_n_threads) {
   BEGIN_CPP11
-    return cpp11::as_sexp(dust2_system_cows_alloc(cpp11::as_cpp<cpp11::decay_t<cpp11::list>>(r_pars), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_time), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_dt), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_particles), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_groups), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_seed), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_deterministic), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_threads)));
+    return cpp11::as_sexp(dust2_system_cows_alloc(cpp11::as_cpp<cpp11::decay_t<cpp11::list>>(r_pars), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_time), cpp11::as_cpp<cpp11::decay_t<cpp11::list>>(r_time_control), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_particles), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_groups), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_seed), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_deterministic), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_threads)));
   END_CPP11
 }
 // cows.cpp
@@ -90,17 +90,17 @@ extern "C" SEXP _cowflu_dust2_system_cows_simulate(SEXP ptr, SEXP r_times, SEXP 
   END_CPP11
 }
 // cows.cpp
-SEXP dust2_unfilter_cows_alloc(cpp11::list r_pars, cpp11::sexp r_time_start, cpp11::sexp r_time, cpp11::sexp r_dt, cpp11::list r_data, cpp11::sexp r_n_particles, cpp11::sexp r_n_groups, cpp11::sexp r_n_threads, cpp11::sexp r_index_state);
-extern "C" SEXP _cowflu_dust2_unfilter_cows_alloc(SEXP r_pars, SEXP r_time_start, SEXP r_time, SEXP r_dt, SEXP r_data, SEXP r_n_particles, SEXP r_n_groups, SEXP r_n_threads, SEXP r_index_state) {
+SEXP dust2_unfilter_cows_alloc(cpp11::list r_pars, cpp11::sexp r_time_start, cpp11::sexp r_time, cpp11::list r_time_control, cpp11::list r_data, cpp11::sexp r_n_particles, cpp11::sexp r_n_groups, cpp11::sexp r_n_threads, cpp11::sexp r_index_state);
+extern "C" SEXP _cowflu_dust2_unfilter_cows_alloc(SEXP r_pars, SEXP r_time_start, SEXP r_time, SEXP r_time_control, SEXP r_data, SEXP r_n_particles, SEXP r_n_groups, SEXP r_n_threads, SEXP r_index_state) {
   BEGIN_CPP11
-    return cpp11::as_sexp(dust2_unfilter_cows_alloc(cpp11::as_cpp<cpp11::decay_t<cpp11::list>>(r_pars), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_time_start), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_time), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_dt), cpp11::as_cpp<cpp11::decay_t<cpp11::list>>(r_data), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_particles), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_groups), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_threads), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_index_state)));
+    return cpp11::as_sexp(dust2_unfilter_cows_alloc(cpp11::as_cpp<cpp11::decay_t<cpp11::list>>(r_pars), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_time_start), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_time), cpp11::as_cpp<cpp11::decay_t<cpp11::list>>(r_time_control), cpp11::as_cpp<cpp11::decay_t<cpp11::list>>(r_data), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_particles), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_groups), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_threads), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_index_state)));
   END_CPP11
 }
 // cows.cpp
-SEXP dust2_filter_cows_alloc(cpp11::list r_pars, cpp11::sexp r_time_start, cpp11::sexp r_time, cpp11::sexp r_dt, cpp11::list r_data, cpp11::sexp r_n_particles, cpp11::sexp r_n_groups, cpp11::sexp r_n_threads, cpp11::sexp r_index_state, cpp11::sexp r_seed);
-extern "C" SEXP _cowflu_dust2_filter_cows_alloc(SEXP r_pars, SEXP r_time_start, SEXP r_time, SEXP r_dt, SEXP r_data, SEXP r_n_particles, SEXP r_n_groups, SEXP r_n_threads, SEXP r_index_state, SEXP r_seed) {
+SEXP dust2_filter_cows_alloc(cpp11::list r_pars, cpp11::sexp r_time_start, cpp11::sexp r_time, cpp11::list r_time_control, cpp11::list r_data, cpp11::sexp r_n_particles, cpp11::sexp r_n_groups, cpp11::sexp r_n_threads, cpp11::sexp r_index_state, cpp11::sexp r_seed);
+extern "C" SEXP _cowflu_dust2_filter_cows_alloc(SEXP r_pars, SEXP r_time_start, SEXP r_time, SEXP r_time_control, SEXP r_data, SEXP r_n_particles, SEXP r_n_groups, SEXP r_n_threads, SEXP r_index_state, SEXP r_seed) {
   BEGIN_CPP11
-    return cpp11::as_sexp(dust2_filter_cows_alloc(cpp11::as_cpp<cpp11::decay_t<cpp11::list>>(r_pars), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_time_start), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_time), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_dt), cpp11::as_cpp<cpp11::decay_t<cpp11::list>>(r_data), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_particles), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_groups), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_threads), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_index_state), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_seed)));
+    return cpp11::as_sexp(dust2_filter_cows_alloc(cpp11::as_cpp<cpp11::decay_t<cpp11::list>>(r_pars), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_time_start), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_time), cpp11::as_cpp<cpp11::decay_t<cpp11::list>>(r_time_control), cpp11::as_cpp<cpp11::decay_t<cpp11::list>>(r_data), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_particles), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_groups), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_n_threads), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_index_state), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_seed)));
   END_CPP11
 }
 // cows.cpp
