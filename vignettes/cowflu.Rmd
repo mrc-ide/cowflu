@@ -106,12 +106,17 @@ s1 <- array(s, c(pars$n_herds + pars$n_regions, 5, n_particles, 76))
 ```
 
 Dim 1 is the herd, and note that we also export cumulative region totals too on the end.
-Dim 2 is the number of epi compartments: S, E, I, and R, and outbreak recording Dim 3 is the number of particles run Dim 4 is time.
+
+Dim 2 is the number of epi compartments: S, E, I, and R, and outbreak recording.
+
+Dim 3 is the number of particles run.
+
+Dim 4 is time.
 
 Note, for large models, we may not want (or be able) to export every herd's dynamic profile.
 Instead, we can ask dust2 to just return the region totals like so:
 
-Creat `i`, a list of the region total indices.
+Create `i`, a list of the region total indices.
 
 ```{r}
 i <- seq.int(pars$n_herds + 1, length.out = pars$n_regions)
