@@ -324,7 +324,7 @@ public:
       const size_t i_start = shared.region_start[i];
       const size_t i_end = shared.region_start[i + 1];
       size_t infected_herds_tally = 0;
-      for (size_t j = i_start + 1; j < i_end; ++j) {
+      for (size_t j = i_start; j < i_end; ++j) {
         infected_herds_tally += (I_next[j] > 0);
       }
       infected_herds_region_next[i] = infected_herds_tally;
