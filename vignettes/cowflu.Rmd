@@ -82,6 +82,12 @@ Run the model for the desired number of time-steps, in this instance, from 0 to 
 s <- dust2::dust_system_simulate(sys, 0:75)
 ```
 
+One of the model variables exported on the end of this `s` object is not part of the SEIR dynamics. We want to chop it off for now.
+```{r}
+end_of_core_states <- (pars$n_herds + pars$n_regions)*5
+s <- s[1:end_of_core_states,,]
+```
+
 Now re-arrange this output into an array:
 
 ```{r}
