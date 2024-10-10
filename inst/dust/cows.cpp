@@ -123,7 +123,7 @@ public:
   using rng_state_type = monty::random::generator<real_type>;
 
   static auto packing_state(const shared_state& shared) {
-    return dust2::packing{{"S_herd", {shared.n_herds}}, {"S_region", {shared.n_regions}}, {"E_herd", {shared.n_herds}}, {"E_region", {shared.n_regions}}, {"I_herd", {shared.n_herds}}, {"I_region", {shared.n_regions}}, {"R_herd", {shared.n_herds}}, {"R_region", {shared.n_regions}}, {"outbreak_herd", {shared.n_herds}}, {"outbreak_region", {shared.n_regions}}};
+    return dust2::packing{{"S_herd", {shared.n_herds}}, {"S_region", {shared.n_regions}}, {"E_herd", {shared.n_herds}}, {"E_region", {shared.n_regions}}, {"I_herd", {shared.n_herds}}, {"I_region", {shared.n_regions}}, {"R_herd", {shared.n_herds}}, {"R_region", {shared.n_regions}}, {"outbreak_herd", {shared.n_herds}}, {"outbreak_region", {shared.n_regions}}, {"infected_herds_region", {shared.n_regions}}};
   }
 
   static auto packing_gradient(const shared_state& shared) {
@@ -136,12 +136,15 @@ public:
                       rng_state_type& rng_state,
                       real_type * state_next) {
     // Start by zeroing everything
-    const auto len_state = 5 * (shared.n_herds + shared.n_regions);
+    const auto len_state = 5 * (shared.n_herds + shared.n_regions) + shared.n_regions;
     std::fill(state_next, state_next + len_state, 0);
     // Then fill in susceptibles from the mean herd size
     const size_t n = shared.n_herds + shared.n_regions;
     auto *S = state_next;
     auto *I = state_next + 2 * n;
+    auto *infected_herds_region = state_next + 5 * n;
+    auto *I_region = state_next + 2 * n + shared.n_herds;
+
     std::copy(shared.n_cows_per_herd.begin(), shared.n_cows_per_herd.end(), S);
     // Seed the infections into the I class
     I[shared.start_herd] = shared.start_count;
@@ -149,6 +152,9 @@ public:
 
     sum_over_regions(S, shared.n_herds, shared.n_regions, shared.region_start);
     sum_over_regions(I, shared.n_herds, shared.n_regions, shared.region_start);
+
+    std::transform(I_region, I_region + shared.n_regions, infected_herds_region,
+              [](int x) { return (x > 0) ? 1 : 0; });
   }
 
   // The main update function, converting state to state_next
@@ -166,6 +172,7 @@ public:
     const real_type* R = state + 3 * n;
     const real_type* outbreak = state + 4 * n;
     const real_type* outbreak_region_count = outbreak + shared.n_herds;
+    const real_type* infected_herds_region = outbreak_region_count + shared.n_regions;
 
     real_type* S_next = state_next;
     real_type* E_next = state_next + n;
@@ -173,6 +180,7 @@ public:
     real_type* R_next = state_next + 3 * n;
     real_type* outbreak_next = state_next + 4 * n;
     real_type* outbreak_region_count_next = outbreak_next + shared.n_herds;
+    real_type* infected_herds_region_next = outbreak_region_count_next + shared.n_regions;
 
     for (size_t i = 0; i < shared.n_herds; ++i) {
       internal.N[i] = S[i] + E[i] + I[i] + R[i];
@@ -316,6 +324,18 @@ public:
     sum_over_regions(E_next, shared.n_herds, shared.n_regions, shared.region_start);
     sum_over_regions(I_next, shared.n_herds, shared.n_regions, shared.region_start);
     sum_over_regions(R_next, shared.n_herds, shared.n_regions, shared.region_start);
+
+    //Tally how many herd in each region contain ANY infected cows:
+    for (size_t i = 0; i < shared.n_regions; ++i) {
+      const size_t i_start = shared.region_start[i];
+      const size_t i_end = shared.region_start[i + 1];
+      size_t infected_herds_tally = 0;
+      for (size_t j = i_start; j < i_end; ++j) {
+        infected_herds_tally += (I_next[j] > 0);
+      }
+      infected_herds_region_next[i] = infected_herds_tally;
+    }
+
   }
 
   static shared_state build_shared(cpp11::list pars) {
