@@ -131,7 +131,6 @@ public:
   }
 
   static void initial(real_type time,
-                      real_type dt,
                       const shared_state& shared,
                       internal_state& internal,
                       rng_state_type& rng_state,
@@ -465,7 +464,6 @@ public:
   }
 
   static real_type compare_data_incidence(const real_type time,
-                                          const real_type dt,
                                           const real_type * state,
                                           const data_type& data,
                                           const shared_state& shared,
@@ -499,7 +497,6 @@ public:
   }
 
   static real_type compare_data_survival(const real_type time,
-                                         const real_type dt,
                                          const real_type * state,
                                          const data_type& data,
                                          const shared_state& shared,
@@ -531,16 +528,15 @@ public:
   }
 
   static real_type compare_data(const real_type time,
-                                const real_type dt,
                                 const real_type * state,
                                 const data_type& data,
                                 const shared_state& shared,
                                 internal_state& internal,
                                 rng_state_type& rng_state) {
     if (shared.likelihood_choice == INCIDENCE) {
-      return compare_data_incidence(time, dt, state, data, shared, internal, rng_state);
+      return compare_data_incidence(time, state, data, shared, internal, rng_state);
     } else if (shared.likelihood_choice == SURVIVAL) {
-      return compare_data_survival(time, dt, state, data, shared, internal, rng_state);
+      return compare_data_survival(time, state, data, shared, internal, rng_state);
     } else {
       return NA_REAL;
     }
