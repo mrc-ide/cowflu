@@ -13,9 +13,8 @@ test_that("The outbreaks (survival analysis) likelihood is calculated correctly"
 
   for(i in times){
     s <- dust2::dust_system_simulate(sys, i)
-    s0 <- array_safe(dust2::dust_system_state(sys),
-                     c(pars$n_herds + pars$n_regions, 5, n_particles))
-    s1 <- array_safe(s, c(pars$n_herds + pars$n_regions, 5, n_particles))
+    end_of_core_states <- (pars$n_herds + pars$n_regions)*5
+    s1 <- array_safe(s[1:end_of_core_states,,], c(pars$n_herds + pars$n_regions, 5, n_particles))
     s1_total_outbreaks <- s1[22:24,5 , ] # The 5th element is the number of detected outbreaks.
 
     for(j in 1:length(outbreaks_detected)){
