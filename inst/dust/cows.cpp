@@ -136,12 +136,15 @@ public:
                       rng_state_type& rng_state,
                       real_type * state_next) {
     // Start by zeroing everything
-    const auto len_state = 5 * (shared.n_herds + shared.n_regions);
+    const auto len_state = 5 * (shared.n_herds + shared.n_regions) + shared.n_regions;
     std::fill(state_next, state_next + len_state, 0);
     // Then fill in susceptibles from the mean herd size
     const size_t n = shared.n_herds + shared.n_regions;
     auto *S = state_next;
     auto *I = state_next + 2 * n;
+    auto *infected_herds_region = state_next + 5 * n;
+    auto *I_region = state_next + 2 * n + shared.n_herds;
+
     std::copy(shared.n_cows_per_herd.begin(), shared.n_cows_per_herd.end(), S);
     // Seed the infections into the I class
     I[shared.start_herd] = shared.start_count;
@@ -149,6 +152,9 @@ public:
 
     sum_over_regions(S, shared.n_herds, shared.n_regions, shared.region_start);
     sum_over_regions(I, shared.n_herds, shared.n_regions, shared.region_start);
+
+    std::transform(I_region, I_region + shared.n_regions, infected_herds_region,
+              [](int x) { return (x > 0) ? 1 : 0; });
   }
 
   // The main update function, converting state to state_next
