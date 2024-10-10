@@ -3,7 +3,7 @@ pkgdown: 2.1.1
 pkgdown_sha: ~
 articles:
   cowflu: cowflu.html
-last_built: 2024-09-26T15:37Z
+last_built: 2024-10-10T16:48Z
 urls:
   reference: https://mrc-ide.github.io/cowflu/reference
   article: https://mrc-ide.github.io/cowflu/articles
