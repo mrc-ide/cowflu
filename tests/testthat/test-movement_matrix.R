@@ -5,7 +5,8 @@ test_that("Identity movement matrix is observed", {
   sys <- dust2::dust_system_create(cows(), pars, n_particles = n_particles, dt = 0.25)
   dust2::dust_system_set_state_initial(sys)
   s <- dust2::dust_system_simulate(sys, times)
-  s1 <- array_safe(s, c(pars$n_herds + pars$n_regions, 5, n_particles, length(times)))
+  end_of_core_states <- (pars$n_herds + pars$n_regions)*5
+  s1 <- array_safe(s[1:end_of_core_states,,], c(pars$n_herds + pars$n_regions, 5, n_particles, length(times)))
 
   s1_total <- s1[22:24, 1:4 , , ] # 1:4 because the 5th element is the number of detected outbreaks.
   s1_region_totals <- apply(s1_total, c(1, 3, 4), sum)
