@@ -131,28 +131,36 @@ run</p>
 from 0 to 75:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu">dust2</span><span class="fu">::</span><span class="fu"><a href="https://mrc-ide.github.io/dust2/reference/dust_system_simulate.html" class="external-link">dust_system_simulate</a></span><span class="op">(</span><span class="va">sys</span>, <span class="fl">0</span><span class="op">:</span><span class="fl">75</span><span class="op">)</span></span></code></pre></div>
-<p>Now re-arrange this output into an array:</p>
+<p>One of the model variables exported on the end of this <code>s</code>
+object is not part of the SEIR dynamics. We want to chop it off for
+now.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">end_of_core_states</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">pars</span><span class="op">$</span><span class="va">n_herds</span> <span class="op">+</span> <span class="va">pars</span><span class="op">$</span><span class="va">n_regions</span><span class="op">)</span><span class="op">*</span><span class="fl">5</span></span>
+<span><span class="va">s</span> <span class="op">&lt;-</span> <span class="va">s</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="va">end_of_core_states</span>,<span class="op">]</span></span></code></pre></div>
+<p>Now re-arrange this output into an array:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">s1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/array.html" class="external-link">array</a></span><span class="op">(</span><span class="va">s</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">pars</span><span class="op">$</span><span class="va">n_herds</span> <span class="op">+</span> <span class="va">pars</span><span class="op">$</span><span class="va">n_regions</span>, <span class="fl">5</span>, <span class="va">n_particles</span>, <span class="fl">76</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Dim 1 is the herd, and note that we also export cumulative region
-totals too on the end. Dim 2 is the number of epi compartments: S, E, I,
-and R, and outbreak recording Dim 3 is the number of particles run Dim 4
-is time.</p>
+totals too on the end.</p>
+<p>Dim 2 is the number of epi compartments: S, E, I, and R, and outbreak
+recording.</p>
+<p>Dim 3 is the number of particles run.</p>
+<p>Dim 4 is time.</p>
 <p>Note, for large models, we may not want (or be able) to export every
 herd’s dynamic profile. Instead, we can ask dust2 to just return the
 region totals like so:</p>
-<p>Creat <code>i</code>, a list of the region total indices.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<p>Create <code>i</code>, a list of the region total indices.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq.int</a></span><span class="op">(</span><span class="va">pars</span><span class="op">$</span><span class="va">n_herds</span> <span class="op">+</span> <span class="fl">1</span>, length.out <span class="op">=</span> <span class="va">pars</span><span class="op">$</span><span class="va">n_regions</span><span class="op">)</span></span>
 <span><span class="va">i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/outer.html" class="external-link">outer</a></span><span class="op">(</span><span class="va">i</span>, <span class="op">(</span><span class="va">pars</span><span class="op">$</span><span class="va">n_herds</span> <span class="op">+</span> <span class="va">pars</span><span class="op">$</span><span class="va">n_regions</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span>, <span class="st">"+"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>And run the model, and allocate output into an array</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sys</span> <span class="op">&lt;-</span> <span class="fu">dust2</span><span class="fu">::</span><span class="fu"><a href="https://mrc-ide.github.io/dust2/reference/dust_system_create.html" class="external-link">dust_system_create</a></span><span class="op">(</span><span class="fu">cowflu</span><span class="fu">:::</span><span class="fu">cows</span><span class="op">(</span><span class="op">)</span>, <span class="va">pars</span>, n_particles <span class="op">=</span> <span class="va">n_particles</span>, dt <span class="op">=</span> <span class="fl">0.25</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span>
 <span><span class="fu">dust2</span><span class="fu">::</span><span class="fu"><a href="https://mrc-ide.github.io/dust2/reference/dust_system_set_state_initial.html" class="external-link">dust_system_set_state_initial</a></span><span class="op">(</span><span class="va">sys</span><span class="op">)</span></span>
 <span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu">dust2</span><span class="fu">::</span><span class="fu"><a href="https://mrc-ide.github.io/dust2/reference/dust_system_simulate.html" class="external-link">dust_system_simulate</a></span><span class="op">(</span><span class="va">sys</span>, <span class="fl">0</span><span class="op">:</span><span class="fl">75</span>, <span class="va">i</span><span class="op">)</span></span>
 <span><span class="va">s2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/array.html" class="external-link">array</a></span><span class="op">(</span><span class="va">s</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">pars</span><span class="op">$</span><span class="va">n_regions</span>, <span class="fl">4</span>, <span class="va">n_particles</span>, <span class="fl">76</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>And check that these outputs are the same:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">testthat</span><span class="fu">::</span><span class="fu"><a href="https://testthat.r-lib.org/reference/equality-expectations.html" class="external-link">expect_equal</a></span><span class="op">(</span><span class="va">s1</span><span class="op">[</span><span class="fl">22</span><span class="op">:</span><span class="fl">24</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, , , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span>, <span class="va">s2</span><span class="op">)</span></span></code></pre></div>
 </div>
   </main>
