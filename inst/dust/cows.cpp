@@ -197,7 +197,7 @@ public:
       size_t n_outbreaks = 0;
       for (size_t j = i_start; j < i_end; ++j) {
         const real_type lambda = internal.N[j] == 0 ? 0 :
-          (shared.beta * (I[j] / internal.N[j] + shared.alpha * (tot_I - I[j]) / (tot_N - internal.N[j])));
+          ( (shared.beta/shared.gamma) * (I[j] / internal.N[j] + shared.alpha * (tot_I - I[j]) / (tot_N - internal.N[j])));
         const real_type p_SE = 1 - std::exp(-lambda * dt); // S to E
         const real_type n_SE = monty::random::binomial<real_type>(rng_state, S[j], p_SE);
         const real_type n_EI = monty::random::binomial<real_type>(rng_state, E[j], p_EI);
