@@ -125,7 +125,7 @@ public:
   using rng_state_type = monty::random::generator<real_type>;
 
   static auto packing_state(const shared_state& shared) {
-    return dust2::packing{{"S_herd", {shared.n_herds}}, {"S_region", {shared.n_regions}}, {"E_herd", {shared.n_herds}}, {"E_region", {shared.n_regions}}, {"I_herd", {shared.n_herds}}, {"I_region", {shared.n_regions}}, {"R_herd", {shared.n_herds}}, {"R_region", {shared.n_regions}}, {"outbreak_herd", {shared.n_herds}}, {"outbreak_region", {shared.n_regions}}, {"infected_herds_region", {shared.n_regions}}};
+    return dust2::packing{{"S_herd", {shared.n_herds}}, {"S_region", {shared.n_regions}}, {"E_herd", {shared.n_herds}}, {"E_region", {shared.n_regions}}, {"I_herd", {shared.n_herds}}, {"I_region", {shared.n_regions}}, {"R_herd", {shared.n_herds}}, {"R_region", {shared.n_regions}}, {"outbreak_herd", {shared.n_herds}}, {"outbreak_region", {shared.n_regions}}, {"infected_herds_region", {shared.n_regions}}, {"probability_test_pass_region", {shared.n_regions}}};
   }
 
   static auto packing_gradient(const shared_state& shared) {
@@ -138,14 +138,17 @@ public:
                       rng_state_type& rng_state,
                       real_type * state_next) {
     // Start by zeroing everything
-    const auto len_state = 5 * (shared.n_herds + shared.n_regions) + shared.n_regions;
+    const auto len_state = 5 * (shared.n_herds + shared.n_regions) + 2 * shared.n_regions;
     std::fill(state_next, state_next + len_state, 0);
     // Then fill in susceptibles from the mean herd size
     const size_t n = shared.n_herds + shared.n_regions;
     auto *S = state_next;
+    auto *E = state_next + 1 * n;
     auto *I = state_next + 2 * n;
+    auto *R = state_next + 3 * n;
     auto *infected_herds_region = state_next + 5 * n;
     auto *I_region = state_next + 2 * n + shared.n_herds;
+    auto *probability_test_pass_region = state_next + 5 * n + shared.n_regions;
 
     std::copy(shared.n_cows_per_herd.begin(), shared.n_cows_per_herd.end(), S);
     // Seed the infections into the I class
@@ -157,6 +160,18 @@ public:
 
     std::transform(I_region, I_region + shared.n_regions, infected_herds_region,
               [](int x) { return (x > 0) ? 1 : 0; });
+
+    // Initialise probabilities of passing export tests:
+    for (size_t i = 0; i < shared.n_regions; ++i) {
+      const size_t i_start = shared.region_start[i];
+      const size_t i_end = shared.region_start[i + 1];
+      double pass_probability_tally = 0.0;
+      for (size_t j = i_start; j < i_end; ++j) {
+        pass_probability_tally += monty::density::hypergeometric(0.0, I[j], S[j] + E[j] + R[j], std::min(static_cast<real_type>(shared.n_test), (S[j] + E[j] + I[j] + R[j])), false )  / (i_end - i_start);
+      }
+      probability_test_pass_region[i] = pass_probability_tally;
+    }
+
   }
 
   // The main update function, converting state to state_next
@@ -175,6 +190,7 @@ public:
     const real_type* outbreak = state + 4 * n;
     const real_type* outbreak_region_count = outbreak + shared.n_herds;
     const real_type* infected_herds_region = outbreak_region_count + shared.n_regions;
+    const real_type* probability_test_pass_region = infected_herds_region + shared.n_regions;
 
     real_type* S_next = state_next;
     real_type* E_next = state_next + n;
@@ -183,6 +199,7 @@ public:
     real_type* outbreak_next = state_next + 4 * n;
     real_type* outbreak_region_count_next = outbreak_next + shared.n_herds;
     real_type* infected_herds_region_next = outbreak_region_count_next + shared.n_regions;
+    real_type* probability_test_pass_region_next = infected_herds_region_next + shared.n_regions;
 
     for (size_t i = 0; i < shared.n_herds; ++i) {
       internal.N[i] = S[i] + E[i] + I[i] + R[i];
@@ -336,6 +353,17 @@ public:
         infected_herds_tally += (I_next[j] > 0);
       }
       infected_herds_region_next[i] = infected_herds_tally;
+    }
+
+    // Record the probability a randomly selected herd passing the border export test per region
+    for (size_t i = 0; i < shared.n_regions; ++i) {
+      const size_t i_start = shared.region_start[i];
+      const size_t i_end = shared.region_start[i + 1];
+      double pass_probability_tally = 0.0;
+      for (size_t j = i_start; j < i_end; ++j) {
+        pass_probability_tally += monty::density::hypergeometric(0.0, I_next[j], S_next[j] + E_next[j] + R_next[j], std::min(static_cast<real_type>(shared.n_test), (S_next[j] + E_next[j] + I_next[j] + R_next[j])), false )  / (i_end - i_start);
+      }
+      probability_test_pass_region_next[i] = pass_probability_tally;
     }
 
   }
