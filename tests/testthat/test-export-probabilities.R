@@ -21,7 +21,11 @@ test_that("The `probability of passing export test' model variable is calculated
       for(k in 1:length(times)){
         probability_tally <- 0
         for(l in (herds_in_region[j] + 1):herds_in_region[j+1]){
-          probability_tally <- probability_tally + dhyper(0, s1_infections[l,i,k], sum(s1[l,c(1,2,4),i,k]), min(pars$n_test, sum(s1[l,1:4,i,k])) )
+          probability_tally <- probability_tally + dhyper(0,
+                                                          round(s1_infections[l,i,k]*pars$p_cow_export[j]),
+                                                          round(sum(s1[l,c(1,2,4),i,k])*pars$p_cow_export[j]),
+                                                          min(pars$n_test, round(sum(s1[l,c(1,2,4),i,k])*pars$p_cow_export[j]) + round(s1_infections[l,i,k]*pars$p_cow_export[j])   )
+                                                          )
         }
         manual_prob_pass[j,i,k] <- probability_tally/pars$n_herds_per_region[j]
       }
