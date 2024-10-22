@@ -66,7 +66,7 @@ cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
        n_regions = n_regions,
        n_herds_per_region = n_herds_per_region,
        region_start = region_start,
-       p_region_export = 1 - exp(-p_region_export * 7), # or 1 - p_region_export^7, but that has a different error
+       p_region_export = p_region_export, #1 - exp(-p_region_export * 7), # or 1 - p_region_export^7, but that has a different error
        p_cow_export = p_cow_export,
        n_cows_per_herd = n_cows_per_herd,
        movement_matrix = movement_matrix_cumulative,
