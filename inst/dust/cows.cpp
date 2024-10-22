@@ -165,7 +165,7 @@ public:
       const size_t i_end = shared.region_start[i + 1];
       double pass_probability_tally = 0.0;
       for (size_t j = i_start; j < i_end; ++j) {
-        pass_probability_tally += monty::density::hypergeometric(0.0, I[j], S[j] + E[j] + R[j], std::min(static_cast<real_type>(shared.n_test), (S[j] + E[j] + I[j] + R[j])), false )  / (i_end - i_start);
+        pass_probability_tally += monty::density::hypergeometric(0.0, std::round(I[j]*shared.p_cow_export[i]), std::round((S[j] + E[j] + R[j])*shared.p_cow_export[i]), std::min(static_cast<real_type>(shared.n_test), std::round((S[j] + E[j] + R[j])*shared.p_cow_export[i]) + std::round(I[j]*shared.p_cow_export[i]) ), false )  / (i_end - i_start);
       }
       probability_test_pass_region[i] = pass_probability_tally;
     }
@@ -359,7 +359,7 @@ public:
       const size_t i_end = shared.region_start[i + 1];
       double pass_probability_tally = 0.0;
       for (size_t j = i_start; j < i_end; ++j) {
-        pass_probability_tally += monty::density::hypergeometric(0.0, I_next[j], S_next[j] + E_next[j] + R_next[j], std::min(static_cast<real_type>(shared.n_test), (S_next[j] + E_next[j] + I_next[j] + R_next[j])), false )  / (i_end - i_start);
+        pass_probability_tally += monty::density::hypergeometric(0.0, std::round(I_next[j]*shared.p_cow_export[i]), std::round((S_next[j] + E_next[j] + R_next[j])*shared.p_cow_export[i]), std::min(static_cast<real_type>(shared.n_test), std::round((S_next[j] + E_next[j] + R_next[j])*shared.p_cow_export[i]) + std::round(I_next[j])*shared.p_cow_export[i] ), false )  / (i_end - i_start);
       }
       probability_test_pass_region_next[i] = pass_probability_tally;
     }
