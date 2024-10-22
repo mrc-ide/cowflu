@@ -35,8 +35,8 @@ First, we set the model parameters:
 pars <- cowflu:::cowflu_inputs(
   alpha = 0.2, #The rate of herd-to-herd infection contacts within each region.
   beta = 0.9,  #The transmission rate
-  gamma = 0.1, #The incubation rate
-  sigma = 0.125,  #The recovery rate
+  gamma = 0.7, #The incubation rate
+  sigma = 0.9,  #The recovery rate
   asc_rate = 1, # The ascertainment rate
   dispersion = 1, # Dispersion parameter, when fitting
   inputs = cowflu:::cowflu_fixed_inputs(
