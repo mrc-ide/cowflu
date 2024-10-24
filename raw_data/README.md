@@ -1,5 +1,3 @@
-# cowflu <img src='man/figures/logo.png' align="right" height="139" />
-
 # Process raw data
 
 * `herd_sizes.R`: number of herd sizes and distribution of herd sizes over US states
