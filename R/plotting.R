@@ -1,3 +1,5 @@
+utils::globalVariables(c("index", "chain", "value", "density"))
+
 plot_chains_ll <- function(samples) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop(
