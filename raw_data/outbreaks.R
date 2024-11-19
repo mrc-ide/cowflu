@@ -8,7 +8,7 @@
 
 process_outbreak_data <- function(root, usda_data){
   # Define path to data
-  outbreak_data_path <- file.path(root, "raw_data", "Raw_Outbreaks_Data_Sep20.csv")
+  outbreak_data_path <- file.path(root, "raw_data", "Raw_Outbreaks_Data_Nov19.csv")
 
   # Load the data
   outbreak_data <- read.csv(outbreak_data_path)
