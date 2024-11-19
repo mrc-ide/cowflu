@@ -2,7 +2,7 @@ test_that("The `probability of passing export test' model variable is calculated
   pars <- test_toy_inputs(time_test = 1)
   n_particles <- 3
   times <- 0:75
-  sys <- dust2::dust_system_create(cows(), pars, n_particles = n_particles, dt = 0.25)
+  sys <- dust2::dust_system_create(cows(), pars, n_particles = n_particles, dt = 0.25, seed = 42)
   dust2::dust_system_set_state_initial(sys)
   ## sys$packer_state$unpack(dust2::dust_system_state(sys))
   ## We subset only the model states, and not additionally added exported variables:
