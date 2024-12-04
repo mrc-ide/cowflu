@@ -60,17 +60,12 @@ for(i in 1:48){
   }
   }
 
+
 for (i in 1:48) {
   real_movement_matrix[i,] <- real_movement_matrix[i,]/sum(real_movement_matrix[i,])
 }
 
-## Lastly, if any of the colSums are 0, we just use a uniform distribution.
-col_sums <- colSums(real_movement_matrix)
-for(i in 1:48){
- if(col_sums[i] == 0){
-   real_movement_matrix[,i] <- 1/48
- }
-}
+
 
 list(real_p_region_export = real_p_region_export,
      real_movement_matrix = real_movement_matrix)
