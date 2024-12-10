@@ -22,6 +22,11 @@ cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
   n_herds_per_region <- n_herds_per_region %||% usda_data$n_herds_per_region
   n_cows_per_herd <- n_cows_per_herd %||% usda_data$n_cows_per_herd
 
+  n_seed <- n_seed %||% 2
+  seed_time <- seed_time %||% c(10000,10000)
+  seed_herd <- seed_herd %||% c(1,1)
+  seed_amount <- seed_amount %||% c(0,0)
+
   n_herds <- sum(n_herds_per_region)
   n_regions <- length(n_herds_per_region)
   if (start_herd < 1 || start_herd > n_herds) {
@@ -83,6 +88,7 @@ cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
     cli::cli_abort(
       "All 'seed_herd' values must be less than 'n_herds'")
   }
+
 
   list(n_herds = n_herds,
        n_regions = n_regions,

@@ -343,14 +343,14 @@ public:
       R_next[i] = R_next[i] + internal.import_R[i] - internal.export_R[i];
     }
 
-    // Add custom seeding
-    for (size_t i = 0; i < shared.n_seed; ++i) {
-      if(time == shared.seed_time[i]){
-        size_t cows_to_seed = std::min(shared.seed_amount[i], S_next[shared.seed_herd[i]]);
-        S_next[shared.seed_herd[i]] = S_next[shared.seed_herd[i]] - cows_to_seed;
-        I_next[shared.seed_herd[i]] = I_next[shared.seed_herd[i]] + cows_to_seed;
-      }
-    }
+    // // Add custom seeding
+    // for (size_t i = 0; i < shared.n_seed; ++i) {
+    //   if(time == shared.seed_time[i]){
+    //     size_t cows_to_seed = std::min(shared.seed_amount[i], S_next[shared.seed_herd[i]]);
+    //     S_next[shared.seed_herd[i]] = S_next[shared.seed_herd[i]] - cows_to_seed;
+    //     I_next[shared.seed_herd[i]] = I_next[shared.seed_herd[i]] + cows_to_seed;
+    //   }
+    // }
 
     sum_over_regions(S_next, shared.n_herds, shared.n_regions, shared.region_start);
     sum_over_regions(E_next, shared.n_herds, shared.n_regions, shared.region_start);
@@ -462,7 +462,7 @@ public:
     dust2::r::read_real_vector(pars, n_seed, seed_herd.data(), "seed_herd", true);
     dust2::r::read_real_vector(pars, n_seed, seed_amount.data(), "seed_amount", true);
 
-    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, likelihood_choice, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, dispersion, condition_on_export, outbreak_detection_parameters, n_seed, seed_time, seed_herd, seed_amount};
+    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, likelihood_choice, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, dispersion, condition_on_export, outbreak_detection_parameters, n_seed, seed_herd};
   }
 
   static internal_state build_internal(const shared_state& shared) {
