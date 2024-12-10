@@ -14,9 +14,18 @@ cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
                                 condition_on_export = TRUE,
                                 likelihood_choice = "incidence",
                                 n_herds_per_region = NULL,
-                                n_cows_per_herd = NULL) {
+                                n_cows_per_herd = NULL,
+                                n_seed = NULL,
+                                seed_time = NULL,
+                                seed_herd = NULL,
+                                seed_amount = NULL) {
   n_herds_per_region <- n_herds_per_region %||% usda_data$n_herds_per_region
   n_cows_per_herd <- n_cows_per_herd %||% usda_data$n_cows_per_herd
+
+  n_seed <- n_seed %||% 2L
+  seed_time <- seed_time %||% c(10000L,10000L)
+  seed_herd <- seed_herd %||% c(1L,1L)
+  seed_amount <- seed_amount %||% c(0L,0L)
 
   n_herds <- sum(n_herds_per_region)
   n_regions <- length(n_herds_per_region)
@@ -62,6 +71,25 @@ cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
   ## This line will transpose the matrix, and change the original rows (now columns) to a cumulative sum.
   movement_matrix_cumulative <- apply(movement_matrix, 1, cumsum)
 
+  ## Check custom seedings:
+  if(length(seed_time) != n_seed){
+    cli::cli_abort(
+      "Expected 'seed_time' to be of length 'n_seed'")
+  }
+  if(length(seed_herd) != n_seed){
+    cli::cli_abort(
+      "Expected 'seed_herd' to be of length 'n_seed'")
+  }
+  if(length(seed_amount) != n_seed){
+    cli::cli_abort(
+      "Expected 'seed_amount' to be of length 'n_seed'")
+  }
+  if(any(seed_herd > n_herds)){
+    cli::cli_abort(
+      "All 'seed_herd' values must be less than 'n_herds'")
+  }
+
+
   list(n_herds = n_herds,
        n_regions = n_regions,
        n_herds_per_region = n_herds_per_region,
@@ -76,5 +104,9 @@ cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
        time_test = time_test,
        n_test = n_test,
        condition_on_export = condition_on_export,
-       likelihood_choice = likelihood_choice)
+       likelihood_choice = likelihood_choice,
+       n_seed = n_seed,
+       seed_time = seed_time,
+       seed_herd = seed_herd,
+       seed_amount = seed_amount)
 }

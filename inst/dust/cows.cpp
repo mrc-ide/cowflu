@@ -79,6 +79,11 @@ public:
   using real_type = double;
 
   struct shared_state {
+    size_t n_seed;
+    std::vector<size_t> seed_time;
+    std::vector<size_t> seed_herd;
+    std::vector<size_t> seed_amount;
+
     size_t n_herds;
     size_t n_regions;
     real_type gamma;
@@ -337,6 +342,15 @@ public:
       R_next[i] = R_next[i] + internal.import_R[i] - internal.export_R[i];
     }
 
+    // Add custom seeding
+    for (size_t i = 0; i < shared.n_seed; ++i) {
+      if(time == shared.seed_time[i]){
+        size_t cows_to_seed = std::min(shared.seed_amount[i], static_cast<size_t>(S_next[shared.seed_herd[i]-1]));
+        S_next[shared.seed_herd[i]-1] = S_next[shared.seed_herd[i]-1] - cows_to_seed;
+        I_next[shared.seed_herd[i]-1] = I_next[shared.seed_herd[i]-1] + cows_to_seed;
+      }
+    }
+
     sum_over_regions(S_next, shared.n_herds, shared.n_regions, shared.region_start);
     sum_over_regions(E_next, shared.n_herds, shared.n_regions, shared.region_start);
     sum_over_regions(I_next, shared.n_herds, shared.n_regions, shared.region_start);
@@ -428,7 +442,27 @@ public:
     const bool outbreak_detection_proportion_only = dust2::r::read_bool(pars, "outbreak_detection_proportion_only", false);
     const auto outbreak_detection_parameters{outbreak_detection_proportion_only};
 
-    return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, likelihood_choice, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, dispersion, condition_on_export, outbreak_detection_parameters};
+    const size_t n_seed = dust2::r::read_size(pars, "n_seed");
+    std::vector<size_t> seed_time(n_seed);
+    std::vector<size_t> seed_herd(n_seed);
+    std::vector<size_t> seed_amount(n_seed);
+
+    auto r_seed_time = pars["seed_time"];
+    auto r_seed_herd = pars["seed_herd"];
+    auto r_seed_amount = pars["seed_amount"];
+    const int * seed_time_data = INTEGER(r_seed_time);
+    const int * seed_herd_data = INTEGER(r_seed_herd);
+    const int * seed_amount_data = INTEGER(r_seed_amount);
+    for (size_t i = 0; i < n_seed; ++i) {
+      seed_time[i] = seed_time_data[i];
+      seed_herd[i] = seed_herd_data[i];
+      seed_amount[i] = seed_amount_data[i];
+    }
+    // dust2::r::read_real_vector(pars, n_seed, seed_time.data(), "seed_time", true);
+    // dust2::r::read_real_vector(pars, n_seed, seed_herd.data(), "seed_herd", true);
+    // dust2::r::read_real_vector(pars, n_seed, seed_amount.data(), "seed_amount", true);
+
+    return shared_state{n_seed, seed_time, seed_herd, seed_amount, n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, likelihood_choice, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, dispersion, condition_on_export, outbreak_detection_parameters};
   }
 
   static internal_state build_internal(const shared_state& shared) {
