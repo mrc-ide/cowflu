@@ -347,7 +347,7 @@ public:
     // Add custom seeding
     for (size_t i = 0; i < shared.n_seed; ++i) {
       if(time == shared.seed_time[i]){
-        size_t cows_to_seed = std::min(shared.seed_amount[i], S_next[shared.seed_herd[i]]);
+        size_t cows_to_seed = std::min(shared.seed_amount[i], static_cast<size_t>(S_next[shared.seed_herd[i]]));
         S_next[shared.seed_herd[i]] = S_next[shared.seed_herd[i]] - cows_to_seed;
         I_next[shared.seed_herd[i]] = I_next[shared.seed_herd[i]] + cows_to_seed;
       }
