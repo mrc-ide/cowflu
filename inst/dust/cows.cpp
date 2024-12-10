@@ -442,9 +442,9 @@ public:
     const auto outbreak_detection_parameters{outbreak_detection_proportion_only};
 
     const size_t n_seed = dust2::r::read_size(pars, "n_seed");
-    std::vector<real_type> seed_time(n_seed);
-    std::vector<real_type> seed_herd(n_seed);
-    std::vector<real_type> seed_amount(n_seed);
+    std::vector<size_t> seed_time(n_seed);
+    std::vector<size_t> seed_herd(n_seed);
+    std::vector<size_t> seed_amount(n_seed);
     dust2::r::read_real_vector(pars, n_seed, seed_time.data(), "seed_time", true);
     dust2::r::read_real_vector(pars, n_seed, seed_herd.data(), "seed_herd", true);
     dust2::r::read_real_vector(pars, n_seed, seed_amount.data(), "seed_amount", true);
