@@ -22,10 +22,10 @@ cowflu_fixed_inputs <- function(p_region_export, p_cow_export,
   n_herds_per_region <- n_herds_per_region %||% usda_data$n_herds_per_region
   n_cows_per_herd <- n_cows_per_herd %||% usda_data$n_cows_per_herd
 
-  n_seed <- n_seed %||% 2
-  seed_time <- seed_time %||% c(10000,10000)
-  seed_herd <- seed_herd %||% c(1,1)
-  seed_amount <- seed_amount %||% c(0,0)
+  n_seed <- n_seed %||% 2L
+  seed_time <- seed_time %||% c(10000L,10000L)
+  seed_herd <- seed_herd %||% c(1L,1L)
+  seed_amount <- seed_amount %||% c(0L,0L)
 
   n_herds <- sum(n_herds_per_region)
   n_regions <- length(n_herds_per_region)
