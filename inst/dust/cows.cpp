@@ -445,10 +445,20 @@ public:
     std::vector<size_t> seed_time(n_seed);
     std::vector<size_t> seed_herd(n_seed);
     std::vector<size_t> seed_amount(n_seed);
-    dust2::r::read_real_vector(pars, n_seed, seed_time.data(), "seed_time", true);
-    dust2::r::read_real_vector(pars, n_seed, seed_herd.data(), "seed_herd", true);
-    dust2::r::read_real_vector(pars, n_seed, seed_amount.data(), "seed_amount", true);
-
+    auto r_seed_time = pars["seed_time"];
+    auto r_seed_herd = pars["seed_herd"];
+    auto r_seed_amount = pars["seed_amount"];
+    const int * seed_time_data = INTEGER(r_seed_time);
+    const int * seed_herd_data = INTEGER(r_seed_herd);
+    const int * seed_amount_data = INTEGER(r_seed_amount);
+    for (size_t i = 0; i < n_seed; ++i) {
+      seed_time[i] = seed_time_data[i];
+      seed_herd[i] = seed_herd_data[i];
+      seed_amount[i] = seed_amount_data[i];
+    }
+    // dust2::r::read_real_vector(pars, n_seed, seed_time.data(), "seed_time", true);
+    // dust2::r::read_real_vector(pars, n_seed, seed_herd.data(), "seed_herd", true);
+    // dust2::r::read_real_vector(pars, n_seed, seed_amount.data(), "seed_amount", true);
 
     return shared_state{n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, likelihood_choice, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, dispersion, condition_on_export, outbreak_detection_parameters, n_seed, seed_time, seed_herd, seed_amount};
   }
