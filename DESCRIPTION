@@ -26,6 +26,7 @@ Suggests:
     ggplot2,
     gridExtra,
     testthat (>= 3.0.0)
+    dplyr
 Remotes:
     mrc-ide/dust2
 Config/testthat/edition: 3
