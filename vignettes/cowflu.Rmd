@@ -27,7 +27,7 @@ Each model system is comprised of a number of regions, and each region contains 
 
 Consider 3 regions, each containing 3, 7, and 11, herds respectively.
 
-##Setting model parameters
+## Setting model parameters
 
 First, we set the model parameters:
 

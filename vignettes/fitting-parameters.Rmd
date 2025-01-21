@@ -1,0 +1,158 @@
+---
+title: "Model Fitting with cowflu"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Model Fitting with cowflu}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+This vignette walks through using the cowflu package to fit the metapopulation model specified in the associated publication "A mathematical model of H5N1 influenza transmission in US dairy cattle".
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(cowflu)
+library(dust2)
+library(monty)
+```
+
+
+
+## Setting model parameters
+
+First, as with the toy example vignette, we set the model parameters. This time specific to our model.
+
+```{r}
+pars <- cowflu:::cowflu_inputs(
+  alpha = 0.05,
+  beta = 1.45,
+  gamma = 1.4,
+  sigma = 1.5,
+  asc_rate = 0.8,
+  dispersion = 1,
+  cowflu:::cowflu_fixed_inputs(
+    n_herds_per_region = cowflu:::usda_data$n_herds_per_region,
+    p_region_export = cowflu:::movement$p_region_export,
+    p_cow_export = cowflu:::movement$p_cow_export,
+    n_cows_per_herd = cowflu:::usda_data$n_cows_per_herd,
+    movement_matrix = cowflu:::movement$movement_matrix,
+    time_test = 19, #Day 136 - April 29th 2024
+    start_herd = 26940, #26804 is where Texas starts. #26940 is a median-sized Texas herd.
+    start_count = 5,
+    condition_on_export = TRUE,
+    likelihood_choice = "survival"))
+```
+
+`alpha`, `beta`, `gamma`, and `sigma` are epidemiological parameters.
+`asc_rate` is an ascertainment rate scaling parameter that we fit.
+
+`n_herds_per_region` is a vector listing the number of herds in each region. 
+
+`p_region_export` is a vector listing the probability that, each day, a herd within the respective region will export cattle to another herd. This does not yet inform where that herd will go, only whether or not an export is going to happen.
+
+`p_cow_export` is a vector listing the probability that, given a herd is exporting cattle, what is the probability that each cow in that herd will be included in the export.
+
+`n_cows_per_herd` is a vector listing exactly how many cows are initialised in each herd of the model.
+
+`movement_matrix` details the probability of which region an exported herd will be sent to. Element `(i, j)` is the probability that an export from region `i` will be sent to region `j`. Thus, each row will sum to 1.
+
+`time_test` is the time point (in weeks) at which cattle will start being tested for flu. At this point, when a herd is exported from one region to another, a number of cows will be sampled from the exported cows. If any of these sampled cows are in the Infected compartment, the export is cancelled.
+
+The above six movement variables are explained in detail in section 2.4 of the Supplementary Material of the associated paper.
+
+`start_herd` is the herd in which infected cows are seeded into at model initialisation.
+
+`start_count` is the number of infected cows to be seeded into herd `start_herd` at model initialisation.
+
+`likelihood_choice` sets which likelihood function we will use. Our default choice, the main result presented in this paper, fits to a "survival function" - a step function detailing the point in time when the first outbreak is detected in a state. An alternate option is "incidence", as explored in SI section 3.2.1.
+
+## Set Priors
+Epidemiological model parameters are fit to data via a Bayesian evidence synthesis approach. We first set our priors for these parameters.
+
+```{r}
+ prior <- monty::monty_dsl({
+   alpha ~ Uniform(min = 0, max = 0.1)
+   beta ~ Uniform(min = 0.05, max = 3)
+   gamma ~ Uniform(min = 0.05, max = 2) 
+   sigma ~ Uniform(min = 0.05, max = 2) 
+   asc_rate ~ Beta(a = 1, b = 1)
+ })
+
+## Pack the priors
+pars_fixed <- pars[-(20:24)]
+prior_packer <- monty::monty_packer(c("alpha", "beta", "gamma", "sigma", "asc_rate"), fixed = pars_fixed)
+
+## With this packer we can convert from a list of name-value pairs suitable for
+## initialising a dust2 system into a vector of parameters suitable for use with monty:
+prior_packer$pack(pars)
+```
+
+## Load data
+
+We load the data we will be fitting too. This should match the likelihood function chosen. In this case, the step function of "time of first outbreak detection" per state.
+
+```{r}
+data_outbreaks <- cowflu:::process_data_outbreak(cowflu:::outbreaks_data$weekly_outbreaks_data)
+
+data_week <- dust2::dust_filter_data(data_outbreaks, time = "week")
+```
+
+## Prepare dust2 items
+
+We build the particle filter, likelihood, and posterior distribution using dust2. We can save the trajectories of the particle fitting by un-commenting the `save_trajectories` argument.
+
+We define the number of particles in the filter here as 2 for simplicity. For the main results presented, we used 320 particles.
+
+```{r}
+## Build a particle filter
+filter <- dust2::dust_filter_create(cowflu:::cows(), 0, #0 is "time_start"
+                                    data_week, n_particles = 2, n_threads = 32, dt = 1)
+
+## Build a likelihood
+likelihood <- dust2::dust_likelihood_monty(filter, prior_packer,
+                                           save_state = FALSE
+                                           #,save_trajectories = c("outbreak_region", "infected_herds_region", "probability_test_pass_region")
+                                           )
+
+## We combine the prior and the likelihood to create a posterior:
+posterior <- prior + likelihood
+```
+
+We also set the variance-covariance matrix for each parameter to be used when exploring parameter space in-chain. We use a diagonal matrix, i.e. no covariance between parameters.
+
+```{r}
+vcv_matrix <- diag(c(0.0015, #alpha
+                     0.06,   #beta
+                     0.05,   #gamma
+                     0.05,   #sigma
+                     0.02))  #asc_rate
+```
+
+## Launch fits
+We reset the weighting on particles on average every 200 steps, as shown in the sampler setup.
+
+For simplicity's sake, this vignette runs 4 chains for 20 samples each. For the full model analysis we ran 16 chains of 40,000 samples. 
+
+```{r, eval=FALSE}
+## Build sampler
+sampler <- monty::monty_sampler_random_walk(vcv_matrix, 
+                                              rerun_every = 200,
+                                              rerun_random = TRUE) 
+
+## Run the samples
+fitting_samples <- monty::monty_sample(posterior, sampler, 
+                                       n_steps = 20, 
+                                       n_chains = 4,
+                                       initial = prior_packer$pack(pars) )
+
+```
+ The resulting `fitting_samples` item is a list of 5 items. `fittings_samples$pars` is samples from the posterior distribution, which we shall use in the following vignette titled "Plotting model results".
