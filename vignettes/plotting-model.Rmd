@@ -576,10 +576,368 @@ start_date <- as.Date("2023-12-18")
 
 ```
 
+## Figure 5
+
+Finally, Figure 5 explores the counterfactual scenarios of different border testing start times and numbers of cows tested. To do this, we have to run simulations like from the previous vignette, for different choices of `n_test` and `time_test` parameters. The actual manuscript figure uses 20,000 simulations of each scenario. The below code only runs 50 for illustrative purposes.
+
+First generate all the simulation data, and save it all in a dataframe.
 
 ```{r, fig.width=7.5, fig.height=4.25, dpi=100}
-# Path to the .rds file
-file_path <- system.file("extdata", "example_sim_results.rds", package = "cowflu")
-# Load the .rds file
-Sim_results <- readRDS(file_path)
+# How many simulation steps to calculate?
+sim_samples <- 50
+## Load posteriors:
+file_path <- system.file("extdata", "example_posterior_fits.rds", package = "cowflu")
+samples <- readRDS(file_path)
+samples <- samples$pars
+## Collapse chains together:
+dim(samples) <- c(5, dim(samples)[2]*dim(samples)[3])
+set.seed(1)
+##We can't use all of them, so sample from the number of times we want to sim the model:
+samples <- samples[, sample(1:dim(samples)[2], sim_samples, replace = TRUE)]
+
+## Pre-allocate arrays:
+Realtime_infected_factual <- array(dim = c(dim(samples)[2], 51))
+Confirmed_outbreaks_factual <- array(dim = c(dim(samples)[2], 51))
+True_infected_herds_factual <- array(dim = c(dim(samples)[2], 51))
+Total_infected_cattle_factual <- array(dim = c(dim(samples)[2], 51))
+
+for(i in 1:dim(samples)[2]){
+  ## Sample the model:
+  pars <- cowflu:::cowflu_inputs(alpha = samples[1,i], beta = samples[2,i], gamma = samples[3,i],
+                                 sigma = samples[4,i], asc_rate = samples[5,i],
+                                 dispersion = 1,
+                                 cowflu:::cowflu_fixed_inputs(p_region_export = cowflu:::movement$p_region_export,
+                                                              p_cow_export = cowflu:::movement$p_cow_export,
+                                                              movement_matrix = cowflu:::movement$movement_matrix,
+                                                              time_test = 19,
+                                                              n_herds_per_region = cowflu:::usda_data$n_herds_per_region,
+                                                              n_cows_per_herd = cowflu:::usda_data$n_cows_per_herd,
+                                                              start_herd = 26940, #26804 is where Texas starts.
+                                                              start_count = 5,
+                                                              condition_on_export = TRUE
+                                 ))
+
+
+  sys <- dust2::dust_system_create(cowflu:::cows(), pars, n_particles = 1, dt = 1)
+  dust2::dust_system_set_state_initial(sys)
+
+  index <- seq.int(pars$n_herds + 1, length.out = pars$n_regions) #This is the S_region outputs
+  index <- c(outer(index, (pars$n_herds + pars$n_regions) * (0:4), "+")) #*0:3 will get the SEIR, but 0:4 will also include the number of outbreaks
+  ##Also want the "true" # of infected herds, so add a number of regions on the end again.
+  index <- c(index, index[length(index)] + 1:48 )
+
+  s <- dust2::dust_system_simulate(sys, 0:50, index)
+  s2 <- array(s, c(pars$n_regions, 6, 51))
+  ## Sum over dim 1, we only want national totals:
+  s2 <- apply(s2, c(2, 3), sum)
+  ##Fill the vectors:
+  Realtime_infected_factual[i,] <-  s2[3 ,]
+  Confirmed_outbreaks_factual[i,] <-  s2[5 ,]
+  True_infected_herds_factual[i,] <-  s2[6 ,]
+  ## To calculate cumulative infections, we take the number of recovered, and add the current infected
+  Total_infected_cattle_factual[i,] <- s2[4, ] + s2[3,]
+}
+
+##Save the plot quantiles from these vectors:
+Weeks <- (1:(dim(Total_infected_cattle_factual)[2])) - 1
+Factual_data1 <- data.frame(metric = rep(NA, length(Weeks)),
+                            Week = rep(NA, length(Weeks)),
+                            mean_value = rep(NA, length(Weeks)),
+                            lower_value = rep(NA, length(Weeks)),
+                            upper_value = rep(NA, length(Weeks)))
+Factual_data2 <- data.frame(metric = rep(NA, length(Weeks)),
+                            Week = rep(NA, length(Weeks)),
+                            mean_value = rep(NA, length(Weeks)),
+                            lower_value = rep(NA, length(Weeks)),
+                            upper_value = rep(NA, length(Weeks)))
+Factual_data3 <- data.frame(metric = rep(NA, length(Weeks)),
+                            Week = rep(NA, length(Weeks)),
+                            mean_value = rep(NA, length(Weeks)),
+                            lower_value = rep(NA, length(Weeks)),
+                            upper_value = rep(NA, length(Weeks)))
+Factual_data4 <- data.frame(metric = rep(NA, length(Weeks)),
+                            Week = rep(NA, length(Weeks)),
+                            mean_value = rep(NA, length(Weeks)),
+                            lower_value = rep(NA, length(Weeks)),
+                            upper_value = rep(NA, length(Weeks)))
+## Populate the data frame:
+for(i in 1:length(Weeks)){
+  Factual_data1$metric[i] <- "Currently_infected_cattle"
+  Factual_data1$Week[i] <- Weeks[i]
+  Factual_data1$mean_value[i] <- mean(Realtime_infected_factual[,i])
+  Factual_data1$lower_value[i] <- quantile(Realtime_infected_factual[,i], 0.025)
+  Factual_data1$upper_value[i] <- quantile(Realtime_infected_factual[,i], 0.975)
+
+  Factual_data2$metric[i] <- "Total_infected_cattle"
+  Factual_data2$Week[i] <- Weeks[i]
+  Factual_data2$mean_value[i] <- mean(Total_infected_cattle_factual[,i])
+  Factual_data2$lower_value[i] <- quantile(Total_infected_cattle_factual[,i], 0.025)
+  Factual_data2$upper_value[i] <- quantile(Total_infected_cattle_factual[,i], 0.975)
+
+  Factual_data3$metric[i] <- "Declared_outbreaks"
+  Factual_data3$Week[i] <- Weeks[i]
+  Factual_data3$mean_value[i] <- mean(Confirmed_outbreaks_factual[,i])
+  Factual_data3$lower_value[i] <- quantile(Confirmed_outbreaks_factual[,i], 0.025)
+  Factual_data3$upper_value[i] <- quantile(Confirmed_outbreaks_factual[,i], 0.975)
+
+  Factual_data4$metric[i] <- "True_infected_herds"
+  Factual_data4$Week[i] <- Weeks[i]
+  Factual_data4$mean_value[i] <- mean(True_infected_herds_factual[,i])
+  Factual_data4$lower_value[i] <- quantile(True_infected_herds_factual[,i], 0.025)
+  Factual_data4$upper_value[i] <- quantile(True_infected_herds_factual[,i], 0.975)
+
+}
+Factual_data <- rbind(Factual_data1, Factual_data2, Factual_data3, Factual_data4)
+rm(Factual_data1, Factual_data2, Factual_data3, Factual_data4,
+   Total_infected_cattle_factual, Realtime_infected_factual, True_infected_herds_factual, Confirmed_outbreaks_factual)
+Factual_data$scenario <- "Factual"
+
+####################
+#Do it again for Counterfactual 1 - The scenario with NO interventions
+#Pre-allocate arrays:
+Realtime_infected_counterfactual1 <- array(dim = c(dim(samples)[2], 51))
+Confirmed_outbreaks_counterfactual1 <- array(dim = c(dim(samples)[2], 51))
+True_infected_herds_counterfactual1 <- array(dim = c(dim(samples)[2], 51))
+Total_infected_cattle_counterfactual1 <- array(dim = c(dim(samples)[2], 51))
+
+for(i in 1:dim(samples)[2]){
+  ## Sample the model:
+  pars <- cowflu:::cowflu_inputs(alpha = samples[1,i], beta = samples[2,i], gamma = samples[3,i],
+                                 sigma = samples[4,i], asc_rate = samples[5,i],
+                                 dispersion = 1,
+                                 cowflu:::cowflu_fixed_inputs(p_region_export = cowflu:::movement$p_region_export,
+                                                              p_cow_export = cowflu:::movement$p_cow_export,
+                                                              movement_matrix = cowflu:::movement$movement_matrix,
+                                                              time_test = 190000,
+                                                              n_herds_per_region = cowflu:::usda_data$n_herds_per_region,
+                                                              n_cows_per_herd = cowflu:::usda_data$n_cows_per_herd,
+                                                              start_herd = 26940, #26804 is where Texas starts.
+                                                              start_count = 5,
+                                                              condition_on_export = TRUE
+                                 ))
+
+
+  sys <- dust2::dust_system_create(cowflu:::cows(), pars, n_particles = 1, dt = 1)
+  dust2::dust_system_set_state_initial(sys)
+
+  index <- seq.int(pars$n_herds + 1, length.out = pars$n_regions) #This is the S_region outputs
+  index <- c(outer(index, (pars$n_herds + pars$n_regions) * (0:4), "+")) #*0:3 will get the SEIR, but 0:4 will also include the number of outbreaks
+  ##Also want the "true" # of infected herds, so add a number of regions on the end again.
+  index <- c(index, index[length(index)] + 1:48 )
+
+  s <- dust2::dust_system_simulate(sys, 0:50, index)
+  s2 <- array(s, c(pars$n_regions, 6, 51))
+  ## Sum over dim 1, we only want national totals:
+  s2 <- apply(s2, c(2, 3), sum)
+  ##Fill the vectors:
+  Realtime_infected_counterfactual1[i,] <-  s2[3 ,]
+  Confirmed_outbreaks_counterfactual1[i,] <-  s2[5 ,]
+  True_infected_herds_counterfactual1[i,] <-  s2[6 ,]
+  ## To calculate cumulative infections, we take the number of recovered, and add the current infected
+  Total_infected_cattle_counterfactual1[i,] <- s2[4, ] + s2[3,]
+}
+
+##Save the plot quantiles from these vectors:
+Weeks <- (1:(dim(Total_infected_cattle_counterfactual1)[2])) - 1
+Counterfactual1_data1 <- data.frame(metric = rep(NA, length(Weeks)),
+                                    Week = rep(NA, length(Weeks)),
+                                    mean_value = rep(NA, length(Weeks)),
+                                    lower_value = rep(NA, length(Weeks)),
+                                    upper_value = rep(NA, length(Weeks)))
+Counterfactual1_data2 <- data.frame(metric = rep(NA, length(Weeks)),
+                                    Week = rep(NA, length(Weeks)),
+                                    mean_value = rep(NA, length(Weeks)),
+                                    lower_value = rep(NA, length(Weeks)),
+                                    upper_value = rep(NA, length(Weeks)))
+Counterfactual1_data3 <- data.frame(metric = rep(NA, length(Weeks)),
+                                    Week = rep(NA, length(Weeks)),
+                                    mean_value = rep(NA, length(Weeks)),
+                                    lower_value = rep(NA, length(Weeks)),
+                                    upper_value = rep(NA, length(Weeks)))
+Counterfactual1_data4 <- data.frame(metric = rep(NA, length(Weeks)),
+                                    Week = rep(NA, length(Weeks)),
+                                    mean_value = rep(NA, length(Weeks)),
+                                    lower_value = rep(NA, length(Weeks)),
+                                    upper_value = rep(NA, length(Weeks)))
+## Populate the data frame:
+for(i in 1:length(Weeks)){
+  Counterfactual1_data1$metric[i] <- "Currently_infected_cattle"
+  Counterfactual1_data1$Week[i] <- Weeks[i]
+  Counterfactual1_data1$mean_value[i] <- mean(Realtime_infected_counterfactual1[,i])
+  Counterfactual1_data1$lower_value[i] <- quantile(Realtime_infected_counterfactual1[,i], 0.025)
+  Counterfactual1_data1$upper_value[i] <- quantile(Realtime_infected_counterfactual1[,i], 0.975)
+
+  Counterfactual1_data2$metric[i] <- "Total_infected_cattle"
+  Counterfactual1_data2$Week[i] <- Weeks[i]
+  Counterfactual1_data2$mean_value[i] <- mean(Total_infected_cattle_counterfactual1[,i])
+  Counterfactual1_data2$lower_value[i] <- quantile(Total_infected_cattle_counterfactual1[,i], 0.025)
+  Counterfactual1_data2$upper_value[i] <- quantile(Total_infected_cattle_counterfactual1[,i], 0.975)
+
+  Counterfactual1_data3$metric[i] <- "Declared_outbreaks"
+  Counterfactual1_data3$Week[i] <- Weeks[i]
+  Counterfactual1_data3$mean_value[i] <- mean(Confirmed_outbreaks_counterfactual1[,i])
+  Counterfactual1_data3$lower_value[i] <- quantile(Confirmed_outbreaks_counterfactual1[,i], 0.025)
+  Counterfactual1_data3$upper_value[i] <- quantile(Confirmed_outbreaks_counterfactual1[,i], 0.975)
+
+  Counterfactual1_data4$metric[i] <- "True_infected_herds"
+  Counterfactual1_data4$Week[i] <- Weeks[i]
+  Counterfactual1_data4$mean_value[i] <- mean(True_infected_herds_counterfactual1[,i])
+  Counterfactual1_data4$lower_value[i] <- quantile(True_infected_herds_counterfactual1[,i], 0.025)
+  Counterfactual1_data4$upper_value[i] <- quantile(True_infected_herds_counterfactual1[,i], 0.975)
+
+}
+Counterfactual1_data <- rbind(Counterfactual1_data1, Counterfactual1_data2, Counterfactual1_data3, Counterfactual1_data4)
+
+## Stick the two together
+Factual_data$scenario <- "True measures"
+Counterfactual1_data$scenario <- "Counterfactual 1 -\n No measures"
+
+Plot_data <- rbind(Factual_data, Counterfactual1_data)
+
+###########################
+#Do it again for Counterfactual 2 - STRONGER interventions
+#test up to 100 cows, and start it week 15 (a month earlier)
+#Pre-allocate arrays:
+Realtime_infected_counterfactual2 <- array(dim = c(dim(samples)[2], 51))
+Confirmed_outbreaks_counterfactual2 <- array(dim = c(dim(samples)[2], 51))
+True_infected_herds_counterfactual2 <- array(dim = c(dim(samples)[2], 51))
+Total_infected_cattle_counterfactual2 <- array(dim = c(dim(samples)[2], 51))
+
+for(i in 1:dim(samples)[2]){
+  ## Sample the model:
+  pars <- cowflu:::cowflu_inputs(alpha = samples[1,i], beta = samples[2,i], gamma = samples[3,i],
+                                 sigma = samples[4,i], asc_rate = samples[5,i],
+                                 dispersion = 1,
+                                 cowflu:::cowflu_fixed_inputs(p_region_export = cowflu:::movement$p_region_export,
+                                                              p_cow_export = cowflu:::movement$p_cow_export,
+                                                              movement_matrix = cowflu:::movement$movement_matrix,
+                                                              time_test = 15,
+                                                              n_test = 100,
+                                                              n_herds_per_region = cowflu:::usda_data$n_herds_per_region,
+                                                              n_cows_per_herd = cowflu:::usda_data$n_cows_per_herd,
+                                                              start_herd = 26940, #26804 is where Texas starts.
+                                                              start_count = 5,
+                                                              condition_on_export = TRUE
+                                 ))
+
+
+  sys <- dust2::dust_system_create(cowflu:::cows(), pars, n_particles = 1, dt = 1)
+  dust2::dust_system_set_state_initial(sys)
+
+  index <- seq.int(pars$n_herds + 1, length.out = pars$n_regions) #This is the S_region outputs
+  index <- c(outer(index, (pars$n_herds + pars$n_regions) * (0:4), "+")) #*0:3 will get the SEIR, but 0:4 will also include the number of outbreaks
+  ##Also want the "true" # of infected herds, so add a number of regions on the end again.
+  index <- c(index, index[length(index)] + 1:48 )
+
+  s <- dust2::dust_system_simulate(sys, 0:50, index)
+  s2 <- array(s, c(pars$n_regions, 6, 51))
+  ## Sum over dim 1, we only want national totals:
+  s2 <- apply(s2, c(2, 3), sum)
+  ##Fill the vectors:
+  Realtime_infected_counterfactual2[i,] <-  s2[3 ,]
+  Confirmed_outbreaks_counterfactual2[i,] <-  s2[5 ,]
+  True_infected_herds_counterfactual2[i,] <-  s2[6 ,]
+  ## To calculate cumulative infections, we take the number of recovered, and add the current infected
+  Total_infected_cattle_counterfactual2[i,] <- s2[4, ] + s2[3,]
+}
+
+##Save the plot quantiles from these vectors:
+Weeks <- (1:(dim(Total_infected_cattle_counterfactual2)[2])) - 1
+Counterfactual2_data1 <- data.frame(metric = rep(NA, length(Weeks)),
+                                    Week = rep(NA, length(Weeks)),
+                                    mean_value = rep(NA, length(Weeks)),
+                                    lower_value = rep(NA, length(Weeks)),
+                                    upper_value = rep(NA, length(Weeks)))
+Counterfactual2_data2 <- data.frame(metric = rep(NA, length(Weeks)),
+                                    Week = rep(NA, length(Weeks)),
+                                    mean_value = rep(NA, length(Weeks)),
+                                    lower_value = rep(NA, length(Weeks)),
+                                    upper_value = rep(NA, length(Weeks)))
+Counterfactual2_data3 <- data.frame(metric = rep(NA, length(Weeks)),
+                                    Week = rep(NA, length(Weeks)),
+                                    mean_value = rep(NA, length(Weeks)),
+                                    lower_value = rep(NA, length(Weeks)),
+                                    upper_value = rep(NA, length(Weeks)))
+Counterfactual2_data4 <- data.frame(metric = rep(NA, length(Weeks)),
+                                    Week = rep(NA, length(Weeks)),
+                                    mean_value = rep(NA, length(Weeks)),
+                                    lower_value = rep(NA, length(Weeks)),
+                                    upper_value = rep(NA, length(Weeks)))
+## Populate the data frame:
+for(i in 1:length(Weeks)){
+  Counterfactual2_data1$metric[i] <- "Currently_infected_cattle"
+  Counterfactual2_data1$Week[i] <- Weeks[i]
+  Counterfactual2_data1$mean_value[i] <- mean(Realtime_infected_counterfactual2[,i])
+  Counterfactual2_data1$lower_value[i] <- quantile(Realtime_infected_counterfactual2[,i], 0.025)
+  Counterfactual2_data1$upper_value[i] <- quantile(Realtime_infected_counterfactual2[,i], 0.975)
+
+  Counterfactual2_data2$metric[i] <- "Total_infected_cattle"
+  Counterfactual2_data2$Week[i] <- Weeks[i]
+  Counterfactual2_data2$mean_value[i] <- mean(Total_infected_cattle_counterfactual2[,i])
+  Counterfactual2_data2$lower_value[i] <- quantile(Total_infected_cattle_counterfactual2[,i], 0.025)
+  Counterfactual2_data2$upper_value[i] <- quantile(Total_infected_cattle_counterfactual2[,i], 0.975)
+
+  Counterfactual2_data3$metric[i] <- "Declared_outbreaks"
+  Counterfactual2_data3$Week[i] <- Weeks[i]
+  Counterfactual2_data3$mean_value[i] <- mean(Confirmed_outbreaks_counterfactual2[,i])
+  Counterfactual2_data3$lower_value[i] <- quantile(Confirmed_outbreaks_counterfactual2[,i], 0.025)
+  Counterfactual2_data3$upper_value[i] <- quantile(Confirmed_outbreaks_counterfactual2[,i], 0.975)
+
+  Counterfactual2_data4$metric[i] <- "True_infected_herds"
+  Counterfactual2_data4$Week[i] <- Weeks[i]
+  Counterfactual2_data4$mean_value[i] <- mean(True_infected_herds_counterfactual2[,i])
+  Counterfactual2_data4$lower_value[i] <- quantile(True_infected_herds_counterfactual2[,i], 0.025)
+  Counterfactual2_data4$upper_value[i] <- quantile(True_infected_herds_counterfactual2[,i], 0.975)
+
+}
+Counterfactual2_data <- rbind(Counterfactual2_data1, Counterfactual2_data2, Counterfactual2_data3, Counterfactual2_data4)
+
+## Stick the two together
+Counterfactual2_data$scenario <- "Counterfactual 2 -\n Stronger measures"
+
+Plot_data <- rbind(Plot_data, Counterfactual2_data)
+
 ```
+
+And now, we can plot the outputs of interest like so:
+
+```{r, fig.width=7.5, fig.height=4.25, dpi=100}
+start_date <- as.Date("2023-12-18")
+# Add the Week_Beginning column to the data frame
+Plot_data$Week_Beginning <- start_date + lubridate::weeks(Plot_data$Week)
+
+## Declared outbreaks
+ggplot(filter(Plot_data, metric == "Declared_outbreaks")) +
+  geom_line(aes(x = Week_Beginning, y = mean_value, colour = scenario)) +
+  geom_ribbon(aes(x= Week_Beginning, ymin = lower_value, ymax = upper_value, fill = scenario),
+              alpha = 0.2) +
+  theme_classic() +
+  labs(x = "Time", y = "Reported Outbreaks", title = "Weekly National Reported Outbreaks",
+       color = "Scenario", fill = "Scenario") +
+  theme(strip.text = element_text(size = 8)) +
+  theme(
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.title = element_text(size = 20),    # Title font size
+    axis.title.x = element_text(size = 16),  # X-axis title font size
+    axis.title.y = element_text(size = 16),  # Y-axis title font size
+    axis.text.x = element_text(size = 12),   # X-axis labels font size
+    axis.text.y = element_text(size = 12),   # Y-axis labels font size
+    legend.text = element_text(size = 14),   # Legend text font size
+    legend.title = element_text(size = 16),  # Legend title font size
+    legend.position = c(0.3, 0.6), # Adjust to place legend inside the plot area
+    legend.key.spacing.y = unit(0.5, 'cm')
+  ) +
+  scale_color_manual(values = c(
+    "True measures" = "#362DD2",
+    "Counterfactual 1 -\n No measures" = "#D2362D",
+    "Counterfactual 2 -\n Stronger measures" = "#2DD236"
+  )) +
+  scale_fill_manual(values = c(
+    "True measures" = "#362DD2",
+    "Counterfactual 1 -\n No measures" = "#D2362D",
+    "Counterfactual 2 -\n Stronger measures" = "#2DD236"
+  ))
+```
+
+Other outputs can be produced by selecting a different filter option for `metric` in the first line of the `ggplot()` function.
