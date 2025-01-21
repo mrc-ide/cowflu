@@ -25,6 +25,8 @@ library(dust2)
 library(monty)
 library(dplyr)
 library(tidyr)
+library(lubridate)
+library(ggplot2)
 ```
 
 ## Load the model simulations
@@ -84,12 +86,256 @@ new_outbreaks_data <- merge(new_outbreaks_data,
 
 Next, we extract and rearrange the simulation outputs into a dataframe.
 Specifically, three model outputs of interest:
-i) One for model fit to "time of first outbreak detection"
+
+i) Another for "true number of herds with infected cattle"
 ii) Another for "total number of declared outbreaks"
-iii) Another for "true number of herds with infected cattle"
+iii) One for model fit to "time of first outbreak detection"
 
 First, number (i):
 
 ```{r}
+## The number of US states
+n_states <- length(cowflu:::usda_data$US_States)
 
+## Extract the data across all chains and iterations
+I_data <- Sim_results[,49:96,]
+n_timepoints <- dim(I_data)[3]
+sim_samples <- dim(I_data)[1]
+n_samples <- sim_samples
+
+## Initialize an empty list to store data frames for each state
+data_list <- list()
+## Loop over each state and calculate summary statistics
+for (state in 1:n_states) {
+  ## Extract data for the current state
+  state_data <- I_data[,state, ]
+  ## Calculate mean, lower, and upper CI across particles for each time point
+  state_summary <- apply(state_data, 2, function(x) {
+    mean_val <- mean(x)
+    ci_low <- quantile(x, 0.025)
+    ci_high <- quantile(x, 0.975)
+    return(c(mean = mean_val, lower_ci = ci_low, upper_ci = ci_high))
+  })
+  ## Convert to a data frame
+  state_df <- as.data.frame(t(state_summary))
+  ## Add time and state information
+  state_df$Time <- 0:(n_timepoints-1)
+  state_df$US_state <- state
+  ## Append to the list
+  data_list[[state]] <- state_df
+}
+
+## Combine all state data frames into one data frame
+result_df <- dplyr::bind_rows(data_list)
+
+## Rename columns
+colnames(result_df) <- c("mean_infected", "lower_ci_infected", "upper_ci_infected", "Time", "US_state")
+## Add number of herds per state:
+result_df$total_herds <- cowflu:::usda_data$n_herds_per_region[result_df$US_state]
+## Replace the US_state numbers with actual names
+result_df$US_state <- factor(result_df$US_state, levels = 1:n_states, labels = cowflu:::usda_data$US_States)
+## Add a descriptor of what type of data this is:
+result_df$Type <- "True Outbreaks"
+
+#Sim_data will be our final data frame.
+Sim_data <- result_df
 ```
+
+Now, repeat this process, to add (ii) to the data frame:
+
+```{r}
+## Extract the  data across all chains and iterations
+I_data <- Sim_results[,1:48,]
+n_timepoints <- dim(I_data)[3]
+n_samples <- sim_samples
+## Initialize an empty list to store data frames for each state
+data_list <- list()
+## Loop over each state and calculate summary statistics
+for (state in 1:n_states) {
+  ## Extract data for the current state
+  state_data <- I_data[,state, ]
+  ## Calculate mean, lower, and upper CI across particles for each time point
+  state_summary <- apply(state_data, 2, function(x) {
+    mean_val <- mean(x)
+    ci_low <- quantile(x, 0.025)
+    ci_high <- quantile(x, 0.975)
+    return(c(mean = mean_val, lower_ci = ci_low, upper_ci = ci_high))
+  })
+  ## Convert to a data frame
+  state_df <- as.data.frame(t(state_summary))
+  ## Add time and state information
+  state_df$Time <- 0:(n_timepoints-1)
+  state_df$US_state <- state
+  ## Append to the list
+  data_list[[state]] <- state_df
+}
+
+## Combine all state data frames into one data frame
+result_df <- dplyr::bind_rows(data_list)
+
+## Rename columns
+colnames(result_df) <- c("mean_infected", "lower_ci_infected", "upper_ci_infected", "Time", "US_state")
+## Add number of herds per state:
+result_df$total_herds <- cowflu:::usda_data$n_herds_per_region[result_df$US_state]
+## Replace the US_state numbers with actual names
+result_df$US_state <- factor(result_df$US_state, levels = 1:n_states, labels = cowflu:::usda_data$US_States)
+## Add a descriptor of what type of data this is:
+result_df$Type <- "Declared Outbreaks"
+
+## Add this new data to the previously made dataframe
+Sim_data <- rbind(Sim_data, result_df)
+```
+
+And lastly for (iii):
+
+```{r}
+## We will need to reorder the data into a data frame:
+real_outbreaks_data <- data_week %>%
+  tidyr::unnest_longer(outbreak_detected) %>%
+  mutate(state = rep(cowflu:::usda_data$US_States, times = nrow(data_week)))
+real_outbreaks_data <- real_outbreaks_data[,c(2,3,4)]
+colnames(real_outbreaks_data) <- c("Time", "outbreak_detected", "US_state")
+
+## Extract the  data across all chains and iterations
+I_data <- Sim_results[,1:48,]
+n_timepoints <- dim(I_data)[3]
+
+## Convert to the step function form:
+## Loop through each region and each step
+for (place in 1:dim(I_data)[2]) {      # Loop over the regions
+  for (chain in 1:dim(I_data)[1]) {    # Loop over the iterations
+
+    ## Get the time series for this place and chain
+    infections <- I_data[chain, place, ]
+
+    ## Find the first time where infections > 0
+    first_infection <- which(infections > 0)[1]
+
+    if (!is.na(first_infection)) {
+      ## From the first infection onwards, set the step function to 1
+      I_data[chain, place, first_infection:dim(I_data)[3]] <- 1
+
+      ## Prior to the first infection, set the values to 0
+      I_data[chain, place, 1:(first_infection-1)] <- 0
+    } else {
+      ## If there are no infections at all, set everything to 0
+      I_data[chain, place, ] <- 0
+    }
+  }
+}
+
+## Initialize an empty list to store data frames for each state
+data_list <- list()
+## Loop over each state and calculate summary statistics
+for (state in 1:n_states) {
+  ## Extract data for the current state
+  state_data <- I_data[,state, ]
+  ## Calculate mean, lower, and upper CI across particles for each time point
+  state_summary <- apply(state_data, 2, function(x) {
+    mean_val <- mean(x)
+    ci_low <- quantile(x, 0.025)
+    ci_high <- quantile(x, 0.975)
+    return(c(mean = mean_val, lower_ci = ci_low, upper_ci = ci_high))
+  })
+  ## Convert to a data frame
+  state_df <- as.data.frame(t(state_summary))
+  ## Add time and state information
+  state_df$Time <- 0:(n_timepoints-1)
+  state_df$US_state <- state
+  ## Append to the list
+  data_list[[state]] <- state_df
+}
+
+## Combine all state data frames into one data frame
+result_df <- dplyr::bind_rows(data_list)
+
+## Rename columns
+colnames(result_df) <- c("mean_infected", "lower_ci_infected", "upper_ci_infected", "Time", "US_state")
+## Add number of herds per state:
+result_df$total_herds <- cowflu:::usda_data$n_herds_per_region[result_df$US_state]
+## Replace the US_state numbers with actual names
+result_df$US_state <- factor(result_df$US_state, levels = 1:n_states, labels = cowflu:::usda_data$US_States)
+## Add a descriptor of what type of data this is:
+result_df$Type <- "First Outbreak"
+
+Sim_data <- rbind(Sim_data, result_df)
+```
+
+Before plotting, we do a little tidying up of the dataframe:
+
+```{r}
+# Add week_beginning columns
+# Define the starting date
+start_date <- as.Date("2023-12-18")
+
+# Add the Week_Beginning column to the data frame
+Sim_data$Week_Beginning <- start_date + weeks(Sim_data$Time)
+new_outbreaks_data$Week_Beginning <- start_date + weeks(new_outbreaks_data$Time)
+
+## Change capitalisation of States:
+## Custom function to capitalize the first letter of each word
+capitalize <- function(text) {
+  sapply(strsplit(text, " "), function(x) {
+    paste(toupper(substring(x, 1, 1)), tolower(substring(x, 2)), sep = "")
+  }, USE.NAMES = FALSE) |>
+    sapply(paste, collapse = " ")
+}
+
+Sim_data$US_state <- as.character(Sim_data$US_state)
+Sim_data$US_state <- capitalize(Sim_data$US_state)
+new_outbreaks_data$US_state <- capitalize(new_outbreaks_data$US_state)
+```
+
+And now we produce the plots using the `geofacet` package. 
+
+
+```{r, fig.width=15, fig.height=8.5, dpi=50}
+library(geofacet)
+continental_us_grid1 <- us_state_grid1[c(-2, -11, -51), ]
+continental_us_grid2 <- us_state_grid2[c(-2, -11, -51), ]
+## i) The "fit to data" plot.
+#############################
+plot_sim_data <- filter(Sim_data, Type == "First Outbreak")
+
+## Create the plot
+ggplot(plot_sim_data) +
+  geom_line(
+    aes(x = Week_Beginning, y = mean_infected, color = "Model simulation")) +
+  geom_ribbon(aes(x = Week_Beginning, ymin = lower_ci_infected, ymax = upper_ci_infected,
+                  fill = "Model simulation"), alpha = 0.2) +
+  geom_point(data = new_outbreaks_data,
+             aes(x = Week_Beginning, y = outbreak_detected, color = "Real data", fill = "Real data")) +
+  theme_bw() +
+  labs(x = "Week Beginning",
+       y = "First Outbreak Detected",
+       title = "Time of First Outbreak Detection",
+       color = "Legend", # Legend title for line and points
+       fill = "Legend" ) +       # Exclude a separate legend title for the ribbon
+  theme(strip.text = element_text(size = 16),
+        plot.title = element_text(size = 24),    # Title text size
+        axis.title.x = element_text(size = 20), # X-axis label size
+        axis.title.y = element_text(size = 20), # Y-axis label size
+        axis.text.x = element_text(size = 12),  # X-axis tick label size
+        axis.text.y = element_text(size = 12),
+        legend.title = element_text(size = 24),
+        legend.text = element_text(size = 24),
+        legend.key.size = unit(1.5, "lines"),
+        legend.position = c(0.9, 0.25), # Adjust to place legend inside the plot area
+        legend.background = element_rect(fill = "white", color = "black") # Optional border for clarity
+  ) +   # Y-axis tick label size
+  facet_geo(~ US_state, grid = continental_us_grid1, label = "name") +
+  scale_x_date(
+    date_labels = "%b %y", # Only show abbreviated month names
+    date_breaks = "2 month" # Ensure monthly ticks
+  ) +
+  scale_color_manual(values = c("Model simulation" = "black", "Real data" = "firebrick")) +  # Set colors manually
+  scale_fill_manual(values = c("Model simulation" = "black", "Real data" = NA)) +  # Set fill color to match the line color
+  guides(
+    color = guide_legend(override.aes = list(size = 3)),  # Increase point size in the legend
+    fill = guide_legend(override.aes = list(size = 3))    # Increase ribbon fill size in the legend
+  ) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+```
+The other model outputs can be produced in the same way, just editing the above code to filter for the specific `Type` in the dataframe.
+
+## Figure 3
