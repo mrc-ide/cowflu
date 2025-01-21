@@ -35,3 +35,61 @@ file_path <- system.file("extdata", "example_sim_results.rds", package = "cowflu
 # Load the .rds file
 Sim_results <- readRDS(file_path)
 ```
+
+## Figure 2
+First we load the real world data that will appear in the figure.
+
+```{r}
+## Load data:
+###################
+
+data_outbreaks <- cowflu:::outbreaks_data$weekly_outbreaks_data
+data_outbreaks <- cowflu:::process_data_outbreak(data_outbreaks)
+data_week <- dust2::dust_filter_data(data_outbreaks, time = "week")
+
+extended_outbreaks_data <- data_week %>%
+  tidyr::unnest_longer(outbreak_detected) %>%
+  mutate(state = rep(cowflu:::usda_data$US_States, times = nrow(data_week)))
+extended_outbreaks_data <- extended_outbreaks_data[,c(2,3,4)]
+colnames(extended_outbreaks_data) <- c("Time", "outbreak_detected", "US_state")
+
+## Add number of herds per state:
+extended_outbreaks_data$total_herds <- 0
+for(i in 1:nrow(extended_outbreaks_data)){
+  extended_outbreaks_data$total_herds[i] <- cowflu:::usda_data$n_herds_per_region[which(cowflu:::usda_data$US_States == extended_outbreaks_data$US_state[i])]
+}
+##########################################
+## And also extract the exact number of new outbreaks data
+new_outbreaks_data <- cowflu:::process_data_incidence(cowflu:::outbreaks_data$weekly_outbreaks_data)
+new_data_week <- dust2::dust_filter_data(new_outbreaks_data, time = "week")
+
+new_outbreaks_data <- new_data_week %>%
+  tidyr::unnest_longer(positive_tests) %>%
+  mutate(state = rep(cowflu:::usda_data$US_States, times = nrow(new_data_week)))
+new_outbreaks_data <- new_outbreaks_data[,c(2,3,4)]
+colnames(new_outbreaks_data) <- c("Time", "new_outbreaks", "US_state")
+## Add number of herds per state:
+new_outbreaks_data$total_herds <- 0
+for(i in 1:nrow(new_outbreaks_data)){
+  new_outbreaks_data$total_herds[i] <- cowflu:::usda_data$n_herds_per_region[which(cowflu:::usda_data$US_States == new_outbreaks_data$US_state[i])]
+}
+
+##Stick the two together:
+new_outbreaks_data <- merge(new_outbreaks_data,
+                            extended_outbreaks_data,
+                            by = c("Time", "US_state", "total_herds"),
+                            all.x = TRUE)
+
+```
+
+Next, we extract and rearrange the simulation outputs into a dataframe.
+Specifically, three model outputs of interest:
+i) One for model fit to "time of first outbreak detection"
+ii) Another for "total number of declared outbreaks"
+iii) Another for "true number of herds with infected cattle"
+
+First, number (i):
+
+```{r}
+
+```
