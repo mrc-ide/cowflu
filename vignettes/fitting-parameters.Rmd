@@ -155,4 +155,4 @@ fitting_samples <- monty::monty_sample(posterior, sampler,
                                        initial = prior_packer$pack(pars) )
 
 ```
- The resulting `fitting_samples` item is a list of 5 items. `fittings_samples$pars` is samples from the posterior distribution, which we shall use in the following vignette titled "Plotting model results".
+ The resulting `fitting_samples` item is a list of 5 items. `fittings_samples$pars` is samples from the posterior distribution, which we shall use in the following vignette titled "Simulating the model with fit parameters".

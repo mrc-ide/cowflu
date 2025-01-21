@@ -1,0 +1,108 @@
+---
+title: "Simulating the model with fit parameters"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Simulating the model with fit parameters}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+This vignette walks through using the cowflu package to simulate the metapopulation model using epidemiological parameters drawn from their respective posterior distribution, as shown in the previous vignette - "Model Fitting with cowflu". This previous vignette ends with the creation of a `fitting_samples` list, which will be used in this vignette. Specific code used is aligned with the associated publication "A mathematical model of H5N1 influenza transmission in US dairy cattle".
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(cowflu)
+library(dust2)
+library(monty)
+library(dplyr)
+library(tidyr)
+```
+
+## Load the fitted parameters
+We load a set of posterior fits from the previous vignette.
+```{r}
+# Path to the .rds file
+file_path <- system.file("extdata", "example_posterior_fits.rds", package = "cowflu")
+# Load the .rds file
+samples <- readRDS(file_path)
+```
+
+## Extract posteriors
+
+We extract the posterior distributions and collapse the chains together for easier access:
+
+```{r}
+## Collapse chains together:
+samples <- samples$pars
+dim(samples) <- c(5, dim(samples)[2]*dim(samples)[3])
+```
+
+## Simulate the model
+
+First, decide how many iterations we want to run. For the paper, we ran 20,000. We do 100 here.
+```{r}
+sim_samples <- 100
+## Pluck this number of values from the posterior distributions, selected randomly.
+samples <- samples[, sample(1:dim(samples)[2], sim_samples, replace = TRUE)]
+## Pre-allocate array to hold the simulation results:
+Sim_results <- array(dim = c(dim(samples)[2], 144, 51)) #144 is number of model states, and 51 is number of time points
+```
+
+Finally, run the simulations:
+```{r}
+for(i in 1:dim(samples)[2]){
+  ## Sample the model:
+  ## Set up parameters
+  pars <- cowflu:::cowflu_inputs(alpha = samples[1,i], beta = samples[2,i], 
+                                 gamma = samples[3,i], sigma = samples[4,i],
+                                 asc_rate = samples[5,i], dispersion = 1,
+                                 cowflu:::cowflu_fixed_inputs(p_region_export = cowflu:::movement$p_region_export, 
+                                                              p_cow_export = cowflu:::movement$p_cow_export,
+                                                              movement_matrix = cowflu:::movement$movement_matrix,
+                                                              time_test = 19,
+                                                              n_herds_per_region = cowflu:::usda_data$n_herds_per_region,
+                                                              n_cows_per_herd = cowflu:::usda_data$n_cows_per_herd,
+                                                              start_herd = 26940,
+                                                              start_count = 5,
+                                                              condition_on_export = TRUE,
+                                                              # We add custom seeding of the confirmed outbreaks from Caserta et al. (2024)
+                                                              n_seed = 9L,
+                                                              seed_time = c(11L,7L,13L,12L,11L,11L,12L,12L,13L)-1L,
+                                                              seed_herd =   c(27058L, 27059L, 19577L, 15322L, 27060L, 27061L, 27062L, 15323L, 6850L),
+                                                              seed_amount = c(800L,   1200L,  787L,   420L,   1400L,  800L,   528L,   200L,   1000L)
+                                 ))
+
+## Create a dust2 system
+  sys <- dust2::dust_system_create(cowflu:::cows(), pars, n_particles = 1, dt = 1)
+  dust2::dust_system_set_state_initial(sys)
+
+## We note the model indices that we want to extract. This tells it to skip the herd level information, and only extract the state totals
+  starting_index <- 4*(pars$n_herds + pars$n_regions) + pars$n_herds
+  index <- seq.int(starting_index + 1, length.out = 3*(pars$n_regions)) #length 144
+  
+  ## We also want to extract the number of infections per herd (I_herd) for use with under-reporting calculations.
+  I_herd_starting_index <- 2*(pars$n_herds + pars$n_regions)
+  I_herd_index <- seq.int(I_herd_starting_index + 1, length.out = pars$n_herds)
+
+  ## Stick the indices of the model outputs we're interested in together
+  total_index <- c(index, I_herd_index)
+
+  ## Run the simulation
+  s <- dust2::dust_system_simulate(sys, 0:50, total_index) #0:50 is timepoints
+  
+  ##Fill the vectors:
+  Sim_results[i,,] <-  s[1:length(index),]
+}
+
+```
+
+The output of this is a `Sim_results` file. A 100 x 144 x 51 array. The first dimension is the simulation number, the second dimension is the model variable, and the third dimension is the timepoint. This file will be used in the final vignette, "Plotting model outputs".
