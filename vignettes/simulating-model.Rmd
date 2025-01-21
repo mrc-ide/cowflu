@@ -1,8 +1,8 @@
 ---
-title: "Simulating the model with fit parameters"
+title: "2) Simulating the model with fit parameters"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Simulating the model with fit parameters}
+  %\VignetteIndexEntry{2) Simulating the model with fit parameters}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 editor_options: 

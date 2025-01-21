@@ -1,0 +1,37 @@
+---
+title: "3) Plotting model outputs"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{3) Plotting model outputs}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+This vignette walks through using the model simulations generated in the previous vignette - "2) Simulating the model with fit parameters", to plot the figures shown in the associated publication "A mathematical model of H5N1 influenza transmission in US dairy cattle".
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(cowflu)
+library(dust2)
+library(monty)
+library(dplyr)
+library(tidyr)
+```
+
+## Load the model simulations
+We load a set of model simulations from the previous vignette. Note, the results plotted in the main manuscript are from a simulation of 20,000 iterations. For simplicity, those shown below use only 500 iterations.
+```{r}
+# Path to the .rds file
+file_path <- system.file("extdata", "example_sim_results.rds", package = "cowflu")
+# Load the .rds file
+Sim_results <- readRDS(file_path)
+```
