@@ -339,3 +339,247 @@ ggplot(plot_sim_data) +
 The other model outputs can be produced in the same way, just editing the above code to filter for the specific `Type` in the dataframe.
 
 ## Figure 3
+Because Figure 3 is plotting a hypothetical infection burden to demonstrate the role of state-differing ascertainment, we do not need to load the previous simulations.
+
+First, the heatmap is produced like so:
+
+```{r, fig.width=7.5, fig.height=4.25, dpi=100}
+I_values <- seq(1, 200, by = 1)  # Sequence of I values
+I_over_N_values <- seq(0.01, 1, by = 0.01)  # Sequence of I/N values
+x <- 0.7  # scaling the percentage
+y <- 150  # Scaling the number of infected
+
+# Generate data
+data <- expand.grid(I = I_values, I_over_N = I_over_N_values)
+data$N <- data$I / data$I_over_N  # Calculate N
+data$f <- data$I / ((x * data$N)^0.95) + (data$I/y)  # Calculate f
+data$z <- 1 - exp(-data$f)  # Calculate 1 - exp(-f)
+
+# Create the heatmap with a custom color scale
+ggplot(data, aes(x = I, y = I_over_N, fill = z)) +
+  geom_tile() +
+  scale_fill_gradientn(
+    colors = c("deepskyblue3", "yellow", "firebrick", "black"),
+    values = c(0, 0.49, 0.5, 0.51, 0.9, 1),
+    limits = c(0, 1),
+    breaks = seq(0, 1, by = 0.1)
+  ) +
+  labs(title = "Baseline probability that a herd reports an outbreak", x = "Infected Cattle (I)", y = "Proportion of herd infected (I / N)", fill = "Prob. report") +
+  scale_x_continuous(expand = c(0, 0)) +  # Remove x-axis gap
+  scale_y_continuous(expand = c(0, 0)) + # Remove y-axis gap
+  theme_classic()
+```
+Next, we produce the data for panels B and C:
+
+```{r}
+# How many samples to use for this plot:
+asc_draws <- 1000 
+# And what proportion do we assume is infected.
+infected_prop = 0.1
+# Use the ascertainment rate posterior
+# Load the posterior samples first
+file_path <- system.file("extdata", "example_posterior_fits.rds", package = "cowflu")
+# Load the .rds file
+samples <- readRDS(file_path)
+asc_rate_samples <- as.numeric(samples$pars[5, ,])
+
+p2_data <- data.frame(State = cowflu:::usda_data$US_States,
+                      declare_prob_mid = rep(NA, 48),
+                      declare_prob_lower = rep(NA, 48),
+                      declare_prob_upper = rep(NA, 48))
+
+for(i in 1:48){
+  index_start <- cowflu:::usda_data$region_start[i] + 1
+  index_end <- cowflu:::usda_data$region_start[i+1]
+  n_herds <- cowflu:::usda_data$n_herds_per_region[i]
+  total_cows <- cowflu:::usda_data$n_cows_per_herd[index_start:index_end]
+  mid_hold <- rep(NA,length(asc_draws) )
+  for(j in 1:asc_draws){
+    infected_cows <- total_cows*infected_prop
+    prob_of_declaring <- infected_cows/((x * total_cows)^0.95) + (infected_cows/y)
+    prob_of_declaring <- prob_of_declaring * sample(asc_rate_samples, 1, replace = TRUE)
+    prob_of_declaring <- 1 - exp(-prob_of_declaring)
+    mid_hold[j] <- mean(prob_of_declaring)
+  }
+
+  p2_data$declare_prob_mid[i] <- mean(mid_hold)
+  p2_data$declare_prob_lower[i] <- quantile(mid_hold, 0.025)
+  p2_data$declare_prob_upper[i] <- quantile(mid_hold, 0.975)
+}
+```
+
+Now we can plot the midpoints as a map:
+
+
+```{r, fig.width=7.5, fig.height=4.25, dpi=100}
+library(maps)
+library(sf)
+us_states <- map_data("state")
+# Get the coordinates of the outbreak state
+state_coords <- us_states %>%
+  group_by(region) %>%
+  summarize(lat = mean(lat), long = mean(long))
+# Load US states map data
+us_states <- sf::st_as_sf(maps::map("state", plot = FALSE, fill = TRUE))
+# Prepare state names to match the data, assuming Prob_df has state names in all caps
+us_states$State <- toupper(us_states$ID)
+
+# Merge probability data with the map data
+map_data <- us_states %>%
+  inner_join(p2_data, by = "State")
+colnames(map_data) <- c("region"  ,     "State"  ,  "prob_mid"  ,   "prob_lower", "prob_upper", "geom"   )
+
+map_data <- map_data %>%
+  inner_join(state_coords, by = "region")
+
+  # Create ggplot map
+  ggplot(map_data) +
+    geom_sf(aes(fill = prob_mid), color = "black") +  
+    scale_fill_gradientn(
+      colors = c("white", "darkgoldenrod1", "darkolivegreen"),  # Colors for the gradient
+      values = c(0, 0.5, 1),  # Corresponding values for the colors
+      limits = c(0, 0.5),
+      name = "Probability"
+    ) +
+    labs(title = sprintf("State Average Probability of Reporting an Outbreak, Assuming %s%% of All Cattle Are Infected.", as.integer(infected_prop*100)),
+         #subtitle = "95% Confidence Intervals Shown",
+         x = "Longitude", y = "Latitude") +
+    theme_void() +
+    theme(axis.text = element_blank(),  # Remove axis labels
+          axis.ticks = element_blank())
+```
+
+And lastly output the 95% CrIs for each state as a forest plot:
+
+```{r, fig.width=7.5, fig.height=4.25, dpi=100}
+## Capitalize region:
+  map_data$region <- capitalize(map_data$region)
+  ## Also get two letter shorthand
+  map_data$shorthand <- state.abb[match(map_data$region, state.name)]
+  # Step 1: Order data by mean (descending)
+  map_data <- map_data %>%
+    arrange(desc(prob_mid)) %>%
+    mutate(shorthand = factor(shorthand, levels = shorthand))  # Reorder factor levels
+
+  # Step 2: Create the forest plot
+  ggplot(map_data, aes(x = shorthand, y = prob_mid)) +
+    geom_errorbar(aes(ymin = prob_lower, ymax = prob_upper), width = 0.2, color = "black") +  # Error bars
+    geom_point(size = 3, color = "darkgoldenrod3") +  # Plot mean as points
+    #coord_flip() +  # Flip axes for a horizontal forest plot
+    labs(
+      title = sprintf("Probability of Reporting an Outbreak, Assuming %s%% of Cattle are Infected", as.integer(infected_prop*100)),
+      x = "US State",
+      y = "Probability of Declaring Outbreak"
+    ) +
+    scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+    theme_minimal()
+```
+
+## Figure 4
+Figure 4 captures the probability of exported cattle testing positive for H5N1 at the state border.
+
+First, we calculate and prepare the data in a dataframe:
+
+```{r}
+Prob_data <- Sim_results[,97:144,]
+n_timepoints <- dim(Prob_data)[3]
+## Make a master data_frame:
+Prob_df <- data.frame(State = rep(cowflu:::usda_data$US_States, n_timepoints),
+                      Week = rep(0:50, each = 48),
+                      mean = rep(NA, 48*n_timepoints),
+                      lower_ci = rep(NA, 48*n_timepoints),
+                      upper_ci = rep(NA, 48*n_timepoints))
+## Populate the dataframe:
+for(i in 1:n_timepoints){
+  Prob_df$mean[(1:48) + (i-1)*48] <- apply(Prob_data[,,i], 2, mean)
+  Prob_df$lower_ci[(1:48) + (i-1)*48] <- apply(Prob_data[,,i], 2, function(x) quantile(x, 0.025))
+  Prob_df$upper_ci[(1:48) + (i-1)*48] <- apply(Prob_data[,,i], 2, function(x) quantile(x, 0.975))
+}
+
+##Fix floating point precision issue:
+Prob_df$mean <- pmin(1, Prob_df$mean)  # Cap at 1
+Prob_df$lower_ci <- pmin(1, Prob_df$lower_ci)  # Cap at 1
+Prob_df$upper_ci <- pmin(1, Prob_df$upper_ci)  # Cap at 1
+
+## Convert from "probability of passing test", to, "probability of a positive test at state border"
+Prob_df$mean <- 1 - Prob_df$mean
+Prob_df$lower_ci <- 1 - Prob_df$lower_ci
+Prob_df$upper_ci <- 1 - Prob_df$upper_ci
+```
+
+Then, decide which week you want to output, filter the data, and plot the probability on a US map:
+
+```{r, fig.width=7.5, fig.height=4.25, dpi=100}
+# Which week to plot?
+timepoint <- 40
+
+us_states <- map_data("state")
+# Get the coordinates of the outbreak state
+state_coords <- us_states %>%
+  group_by(region) %>%
+  summarize(lat = mean(lat), long = mean(long))
+# Load US states map data
+us_states <- sf::st_as_sf(maps::map("state", plot = FALSE, fill = TRUE))
+# Prepare state names to match the data, assuming Prob_df has state names in all caps
+us_states$State <- toupper(us_states$ID)
+
+start_date <- as.Date("2023-12-18")
+
+  # Calculate w/b date
+  Week_Beginning <- start_date + weeks(timepoint)
+  Week_Beginning <- format(Week_Beginning, "%d/%m/%Y")
+
+  Week_data <- filter(Prob_df, Week == timepoint)
+
+  # Merge probability data with the map data
+  map_data <- us_states %>%
+    inner_join(Week_data, by = "State")
+  colnames(map_data) <- c("region"  ,     "State"  , "Week",  "mean"  ,   "lower_ci", "upper_ci", "geom"   )
+
+  map_data <- map_data %>%
+    inner_join(state_coords, by = "region")
+
+  if(max(map_data$mean) < 0.05){
+    ##smaller scale
+    # Create ggplot map
+    ggplot(map_data) +
+      geom_sf(aes(fill = mean), color = "black") +  
+      scale_fill_gradientn(
+        colors = c("white", "coral2"),  # Colors for the gradient
+        values = c(0, 1),  # Corresponding values for the colors
+        limits = c(0, 0.05),
+        name = "Mean \nProbability"
+      ) +
+      labs(title = sprintf("Mean Probability of H5N1 Positive Test When Exporting From State \n    Week Beginning %s", Week_Beginning),
+           x = "Longitude", y = "Latitude") +
+      theme_void() +
+      theme(axis.text = element_blank(),  # Remove axis labels
+            axis.ticks = element_blank()) 
+
+  } else{
+    ##larger scale
+    # Create ggplot map
+    ggplot(map_data) +
+      geom_sf(aes(fill = mean), color = "black") +  
+      scale_fill_gradientn(
+        colors = c("white", "coral2", "darkslategrey"),  # Colors for the gradient
+        values = c(0, 0.1, 1),  # Corresponding values for the colors
+        limits = c(0, 0.5),
+        name = "Mean \nProbability"
+      ) +
+      labs(title = sprintf("Mean Probability of H5N1 Positive Test When Exporting From State \n    Week Beginning %s", Week_Beginning),
+           x = "Longitude", y = "Latitude") +
+      theme_void() +
+      theme(axis.text = element_blank(),  # Remove axis labels
+            axis.ticks = element_blank())
+  }
+
+```
+
+
+```{r, fig.width=7.5, fig.height=4.25, dpi=100}
+# Path to the .rds file
+file_path <- system.file("extdata", "example_sim_results.rds", package = "cowflu")
+# Load the .rds file
+Sim_results <- readRDS(file_path)
+```

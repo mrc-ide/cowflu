@@ -29,7 +29,9 @@ Suggests:
     dplyr,
     tidyr,
     lubridate,
-    geofacet
+    geofacet,
+    maps,
+    sf
 Remotes:
     mrc-ide/dust2
 Config/testthat/edition: 3
