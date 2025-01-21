@@ -142,7 +142,7 @@ We reset the weighting on particles on average every 200 steps, as shown in the 
 
 For simplicity's sake, this vignette runs 4 chains for 20 samples each. For the full model analysis we ran 16 chains of 40,000 samples. 
 
-```{r}
+```{r, eval=FALSE}
 ## Build sampler
 sampler <- monty::monty_sampler_random_walk(vcv_matrix, 
                                               rerun_every = 200,
