@@ -1,8 +1,8 @@
 ---
-title: "Model Fitting with cowflu"
+title: "1) Model Fitting with cowflu"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Model Fitting with cowflu}
+  %\VignetteIndexEntry{1) Model Fitting with cowflu}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 editor_options: 

@@ -1,6 +1,6 @@
 Package: cowflu
 Title: Cows With Flu
-Version: 0.2.6
+Version: 1.0.0
 Authors@R: c(person("Thomas", "Rawson", role = c("aut", "cre"),
                     email = "t.rawson@imperial.ac.uk"),
              person("Rich", "FitzJohn", role = "aut"),
@@ -27,7 +27,11 @@ Suggests:
     gridExtra,
     testthat (>= 3.0.0),
     dplyr,
-    tidyr
+    tidyr,
+    lubridate,
+    geofacet,
+    maps,
+    sf
 Remotes:
     mrc-ide/dust2
 Config/testthat/edition: 3
