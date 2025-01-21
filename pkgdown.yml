@@ -4,7 +4,8 @@ pkgdown_sha: ~
 articles:
   cowflu: cowflu.html
   fitting-parameters: fitting-parameters.html
-last_built: 2025-01-21T16:09Z
+  simulating-model: simulating-model.html
+last_built: 2025-01-21T21:37Z
 urls:
   reference: https://mrc-ide.github.io/cowflu/reference
   article: https://mrc-ide.github.io/cowflu/articles
