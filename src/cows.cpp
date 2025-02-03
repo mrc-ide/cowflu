@@ -44,11 +44,10 @@ void sum_over_regions(real_type *cows,
 
 struct outbreak_detection_parameters {
   bool proportion_only;
-  // These all fixed for now:
-  double proportion_scaling = 10;
-  double N_scaling = 0.7;
-  double strength_scaling = 0.95;
-  double I_scaling = 150;
+  double N_scaling;
+  double proportion_scaling;
+  double strength_scaling;
+  double I_scaling;
 } outbreak_detection ;
 
 
@@ -442,7 +441,12 @@ public:
     const auto likelihood_choice = read_likelihood_type(pars, "likelihood_choice");
 
     const bool outbreak_detection_proportion_only = dust2::r::read_bool(pars, "outbreak_detection_proportion_only", false);
-    const auto outbreak_detection_parameters{outbreak_detection_proportion_only};
+    const real_type N_scaling = dust2::r::read_real(pars, "N_scaling", 0.7);
+    const real_type proportion_scaling = dust2::r::read_real(pars, "proportion_scaling", 10);
+    const real_type strength_scaling = dust2::r::read_real(pars, "strength_scaling", 0.95);
+    const real_type I_scaling = dust2::r::read_real(pars, "I_scaling", 150);
+
+    const auto outbreak_detection_parameters{outbreak_detection_proportion_only, N_scaling, proportion_scaling, strength_scaling, I_scaling};
 
     const size_t n_seed = dust2::r::read_size(pars, "n_seed");
     std::vector<size_t> seed_time(n_seed);
@@ -496,6 +500,12 @@ public:
     } else {
       dust2::r::read_real_vector(pars, shared.n_regions, shared.asc_rate.data(), "asc_rate", false);
     }
+
+    shared.outbreak_detection.N_scaling = dust2::r::read_real(pars, "N_scaling", shared.outbreak_detection.N_scaling);
+    shared.outbreak_detection.proportion_scaling = dust2::r::read_real(pars, "proportion_scaling", shared.outbreak_detection.proportion_scaling);
+    shared.outbreak_detection.strength_scaling = dust2::r::read_real(pars, "strength_scaling", shared.outbreak_detection.strength_scaling);
+    shared.outbreak_detection.I_scaling = dust2::r::read_real(pars, "I_scaling", shared.outbreak_detection.I_scaling);
+
   }
 
   // This is a reasonable default implementation in the no-internal
