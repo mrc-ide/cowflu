@@ -13,6 +13,8 @@ To install `cowflu`:
 remotes::install_github("mrc-ide/cowflu", upgrade = FALSE)
 ```
 
+Typical install time is < 30 seconds.
+
 ## Development
 
 You will need `cpp11`, `decor`, and `brio` installed too.
