@@ -208,8 +208,8 @@ i.e. no covariance between parameters.</p>
 <p>We reset the weighting on particles on average every 200 steps, as
 shown in the sampler setup.</p>
 <p>For simplicity’s sake, this vignette runs 4 chains for 20 samples
-each. For the full model analysis we ran 16 chains of 40,000
-samples.</p>
+each. Average run time of &lt; 2mins. For the full model analysis we ran
+16 chains of 40,000 samples.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## Build sampler</span></span>
 <span><span class="va">sampler</span> <span class="op">&lt;-</span> <span class="fu">monty</span><span class="fu">::</span><span class="fu"><a href="https://mrc-ide.github.io/monty/reference/monty_sampler_random_walk.html" class="external-link">monty_sampler_random_walk</a></span><span class="op">(</span><span class="va">vcv_matrix</span>, </span>
