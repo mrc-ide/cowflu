@@ -140,7 +140,7 @@ vcv_matrix <- diag(c(0.0015, #alpha
 ## Launch fits
 We reset the weighting on particles on average every 200 steps, as shown in the sampler setup.
 
-For simplicity's sake, this vignette runs 4 chains for 20 samples each. For the full model analysis we ran 16 chains of 40,000 samples. 
+For simplicity's sake, this vignette runs 4 chains for 20 samples each. Average run time of < 2mins. For the full model analysis we ran 16 chains of 40,000 samples. 
 
 ```{r, eval=FALSE}
 ## Build sampler
