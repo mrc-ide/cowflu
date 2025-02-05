@@ -103,6 +103,7 @@ public:
     std::vector<real_type> asc_rate;
     real_type dispersion;
     bool condition_on_export;
+    bool export_prob_depends_on_size;
     // A bunch of control for the outbreak detection, except for
     // asc_rate which is something we want to fit to, and which varies
     // by region (everything here holds for the whole simulation).
@@ -413,6 +414,7 @@ public:
     dust2::r::read_real_vector(pars, n_regions * n_regions, movement_matrix.data(), "movement_matrix", true);
 
     const bool condition_on_export = dust2::r::read_bool(pars, "condition_on_export", true);
+    const bool export_prob_depends_on_size = dust2::r::read_bool(pars, "export_prob_depends_on_size", false);
 
     const real_type time_test = dust2::r::read_real(pars, "time_test", 30);
     const real_type n_test = dust2::r::read_real(pars, "n_test", 30);
@@ -466,7 +468,7 @@ public:
     // dust2::r::read_real_vector(pars, n_seed, seed_herd.data(), "seed_herd", true);
     // dust2::r::read_real_vector(pars, n_seed, seed_amount.data(), "seed_amount", true);
 
-    return shared_state{n_seed, seed_time, seed_herd, seed_amount, n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, likelihood_choice, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, dispersion, condition_on_export, outbreak_detection};
+    return shared_state{n_seed, seed_time, seed_herd, seed_amount, n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, likelihood_choice, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, dispersion, condition_on_export, export_prob_depends_on_size, outbreak_detection};
   }
 
   static internal_state build_internal(const shared_state& shared) {
