@@ -258,50 +258,95 @@ public:
     // Calculate exports
     if(shared.export_prob_depends_on_size){
       // Bigger herds are more likely to export
+
+      // Convert N into cumulative counts within a region:
+      for (size_t i = 0; i < shared.n_regions; ++i) {
+        const size_t i_start = shared.region_start[i];
+        const size_t i_end = shared.region_start[i + 1];
+        for (size_t j = i_start + 1; j < i_end; ++j) {
+          internal.N[j] += internal.N[j - 1];
+        }
+      }
+
+      // Calculate how many exports we will have from each region
+      for (size_t j = 0; j < shared.n_regions; ++j) {
+        const auto p_cow_export = shared.p_cow_export[j];
+        const auto j_region_start = shared.region_start[j];
+        const auto j_region_end = shared.region_start[j + 1];
+        const size_t n_herds_in_region = j_region_end - j_region_start;
+        const auto region_exports = monty::random::binomial<real_type>(rng_state, n_herds_in_region, shared.p_region_export[j]);
+        // Assign these exports to specific herds dependent on their size.
+        // Can't assign multiple exports to the same herd.
+
+        //Assign all exports
+        for (size_t k = 0; k < region_exports; ++k) {
+          // A switch to say if the export was successfully assigned.
+          size_t export_assigned = 0;
+          do {
+            const real_type u2 = monty::random::random_real<real_type>(rng_state);
+            const size_t n_cows_in_region = internal.N[j_region_end - 1];
+            const auto it_N = internal.N.begin() + j_region_start;
+            const size_t export_dst = j_region_start + std::distance(it_N, std::upper_bound(it_N, it_N + n_herds_in_region, u2 * n_cows_in_region));
+
+            n_exported_currently = internal.export_S[export_dst] + internal.export_E[export_dst] + internal.export_I[export_dst] + internal.export_R[export_dst];
+            if(n_exported_currently == 0){
+              internal.export_S[export_dst] = monty::random::binomial<real_type>(rng_state, S_next[export_dst], p_cow_export);
+              internal.export_E[export_dst] = monty::random::binomial<real_type>(rng_state, E_next[export_dst], p_cow_export);
+              internal.export_I[export_dst] = monty::random::binomial<real_type>(rng_state, I_next[export_dst], p_cow_export);
+              internal.export_R[export_dst] = monty::random::binomial<real_type>(rng_state, R_next[export_dst], p_cow_export);
+              export_assigned = 1;
+            }
+
+          } while (export_assigned == 0);
+
+        }
+
+      }
     } else {
       // All herds have equal chance of exporting
-    for (size_t i = 0; i < shared.n_herds; ++i) {
-      const auto j = shared.herd_to_region_lookup[i];
-      // TODO: thom to investigate
-      //
-      // region export through logistic function, or possibly as 1 -
-      // exp(dt * p_region_export), but multiplication by dt means
-      // that we overestimate this export at large dt.
-      const auto logistic_p_region = (shared.p_region_export[j] * dt) / std::pow((1 + std::pow((shared.p_region_export[j] * dt), 10)), 0.1);
-      const auto export_cows = internal.N[i] > 0 && monty::random::random_real<real_type>(rng_state) < logistic_p_region;
-      if (export_cows) {
-        const auto p_cow_export = shared.p_cow_export[j];
-        // Option 1: rejection sampling:
-        size_t n_exported = 0;
-        do {
-          internal.export_S[i] = monty::random::binomial<real_type>(rng_state, S_next[i], p_cow_export);
-          internal.export_E[i] = monty::random::binomial<real_type>(rng_state, E_next[i], p_cow_export);
-          internal.export_I[i] = monty::random::binomial<real_type>(rng_state, I_next[i], p_cow_export);
-          internal.export_R[i] = monty::random::binomial<real_type>(rng_state, R_next[i], p_cow_export);
-          n_exported = internal.export_S[i] + internal.export_E[i] + internal.export_I[i] + internal.export_R[i];
-        } while (shared.condition_on_export && n_exported == 0);
-        // Option 2:
+      for (size_t i = 0; i < shared.n_herds; ++i) {
+        const auto j = shared.herd_to_region_lookup[i];
+        // TODO: thom to investigate
         //
-        // Sample the number of cows in each compartment from a
-        // beta-binomial, sharing the beta draw across the four draws,
-        // but redrawing each time around the rejection.
-        //
-        // Option 3:
-        //
-        // If p is very small, then sample from a conditioned binomial
-        // for the total over all cows, then draw SEIR allocation from
-        // a multivartiate hypergeometric, which is not actually
-        // implemented in monty yet.
+        // region export through logistic function, or possibly as 1 -
+        // exp(dt * p_region_export), but multiplication by dt means
+        // that we overestimate this export at large dt.
+        const auto logistic_p_region = (shared.p_region_export[j] * dt) / std::pow((1 + std::pow((shared.p_region_export[j] * dt), 10)), 0.1);
+        const auto export_cows = internal.N[i] > 0 && monty::random::random_real<real_type>(rng_state) < logistic_p_region;
+        if (export_cows) {
+          const auto p_cow_export = shared.p_cow_export[j];
+          // Option 1: rejection sampling:
+          size_t n_exported = 0;
+          do {
+            internal.export_S[i] = monty::random::binomial<real_type>(rng_state, S_next[i], p_cow_export);
+            internal.export_E[i] = monty::random::binomial<real_type>(rng_state, E_next[i], p_cow_export);
+            internal.export_I[i] = monty::random::binomial<real_type>(rng_state, I_next[i], p_cow_export);
+            internal.export_R[i] = monty::random::binomial<real_type>(rng_state, R_next[i], p_cow_export);
+            n_exported = internal.export_S[i] + internal.export_E[i] + internal.export_I[i] + internal.export_R[i];
+          } while (shared.condition_on_export && n_exported == 0);
+          // Option 2:
+          //
+          // Sample the number of cows in each compartment from a
+          // beta-binomial, sharing the beta draw across the four draws,
+          // but redrawing each time around the rejection.
+          //
+          // Option 3:
+          //
+          // If p is very small, then sample from a conditioned binomial
+          // for the total over all cows, then draw SEIR allocation from
+          // a multivartiate hypergeometric, which is not actually
+          // implemented in monty yet.
+        }
       }
-    }
-    }
 
-    // Convert N into cumulative counts within a region:
-    for (size_t i = 0; i < shared.n_regions; ++i) {
-      const size_t i_start = shared.region_start[i];
-      const size_t i_end = shared.region_start[i + 1];
-      for (size_t j = i_start + 1; j < i_end; ++j) {
-        internal.N[j] += internal.N[j - 1];
+
+      // Convert N into cumulative counts within a region:
+      for (size_t i = 0; i < shared.n_regions; ++i) {
+        const size_t i_start = shared.region_start[i];
+        const size_t i_end = shared.region_start[i + 1];
+        for (size_t j = i_start + 1; j < i_end; ++j) {
+          internal.N[j] += internal.N[j - 1];
+        }
       }
     }
 
