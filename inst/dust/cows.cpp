@@ -288,7 +288,7 @@ public:
             const auto it_N = internal.N.begin() + j_region_start;
             const size_t export_dst = j_region_start + std::distance(it_N, std::upper_bound(it_N, it_N + n_herds_in_region, u2 * n_cows_in_region));
 
-            n_exported_currently = internal.export_S[export_dst] + internal.export_E[export_dst] + internal.export_I[export_dst] + internal.export_R[export_dst];
+            size_t n_exported_currently = internal.export_S[export_dst] + internal.export_E[export_dst] + internal.export_I[export_dst] + internal.export_R[export_dst];
             if(n_exported_currently == 0){
               internal.export_S[export_dst] = monty::random::binomial<real_type>(rng_state, S_next[export_dst], p_cow_export);
               internal.export_E[export_dst] = monty::random::binomial<real_type>(rng_state, E_next[export_dst], p_cow_export);
