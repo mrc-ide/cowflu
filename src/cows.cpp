@@ -273,10 +273,11 @@ public:
       // Calculate how many exports we will have from each region
       for (size_t j = 0; j < shared.n_regions; ++j) {
         const auto p_cow_export = shared.p_cow_export[j];
+        const auto logistic_p_region = (shared.p_region_export[j] * dt) / std::pow((1 + std::pow((shared.p_region_export[j] * dt), 10)), 0.1);
         const auto j_region_start = shared.region_start[j];
         const auto j_region_end = shared.region_start[j + 1];
         const size_t n_herds_in_region = j_region_end - j_region_start;
-        const auto region_exports = monty::random::binomial<real_type>(rng_state, n_herds_in_region, shared.p_region_export[j]);
+        const auto region_exports = monty::random::binomial<real_type>(rng_state, n_herds_in_region, logistic_p_region);
         // Assign these exports to specific herds dependent on their size.
         // Can't assign multiple exports to the same herd.
 
