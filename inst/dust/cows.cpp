@@ -254,6 +254,12 @@ public:
     std::fill(internal.import_R.begin(), internal.import_R.end(), 0);
 
     // Above, we change the populations (we do this BEFORE calculating import/exports)
+
+    // Calculate exports
+    if(shared.export_prob_depends_on_size){
+      // Bigger herds are more likely to export
+    } else {
+      // All herds have equal chance of exporting
     for (size_t i = 0; i < shared.n_herds; ++i) {
       const auto j = shared.herd_to_region_lookup[i];
       // TODO: thom to investigate
@@ -287,6 +293,7 @@ public:
         // a multivartiate hypergeometric, which is not actually
         // implemented in monty yet.
       }
+    }
     }
 
     // Convert N into cumulative counts within a region:
