@@ -282,7 +282,7 @@ public:
         //Assign all exports
         for (size_t k = 0; k < region_exports; ++k) {
           // A switch to say if the export was successfully assigned.
-          size_t export_assigned = 0;
+          bool export_assigned = false;
           do {
             const real_type u2 = monty::random::random_real<real_type>(rng_state);
             const size_t n_cows_in_region = internal.N[j_region_end - 1];
