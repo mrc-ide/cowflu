@@ -295,10 +295,10 @@ public:
               internal.export_E[export_dst] = monty::random::binomial<real_type>(rng_state, E_next[export_dst], p_cow_export);
               internal.export_I[export_dst] = monty::random::binomial<real_type>(rng_state, I_next[export_dst], p_cow_export);
               internal.export_R[export_dst] = monty::random::binomial<real_type>(rng_state, R_next[export_dst], p_cow_export);
-              export_assigned = 1;
+              export_assigned = true;
             }
 
-          } while (export_assigned == 0);
+          } while (!export_assigned);
 
         }
 
