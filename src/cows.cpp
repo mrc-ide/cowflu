@@ -125,6 +125,7 @@ public:
     std::vector<real_type> import_E;
     std::vector<real_type> import_I;
     std::vector<real_type> import_R;
+    bool has_exported;
   };
 
   using rng_state_type = monty::random::generator<real_type>;
@@ -291,8 +292,8 @@ public:
             const auto it_N = internal.N.begin() + j_region_start;
             const size_t export_dst = j_region_start + std::distance(it_N, std::upper_bound(it_N, it_N + n_herds_in_region, u2 * n_cows_in_region));
 
-            bool has_exported = internal.export_S[export_dst] > 0 || internal.export_E[export_dst] > 0 || internal.export_I[export_dst] > 0 || internal.export_R[export_dst] > 0;
-            if(!has_exported){
+            internal.has_exported = internal.export_S[export_dst] > 0 || internal.export_E[export_dst] > 0 || internal.export_I[export_dst] > 0 || internal.export_R[export_dst] > 0;
+            if(!internal.has_exported){
               internal.export_S[export_dst] = monty::random::binomial<real_type>(rng_state, S_next[export_dst], p_cow_export);
               internal.export_E[export_dst] = monty::random::binomial<real_type>(rng_state, E_next[export_dst], p_cow_export);
               internal.export_I[export_dst] = monty::random::binomial<real_type>(rng_state, I_next[export_dst], p_cow_export);
@@ -536,7 +537,8 @@ public:
     std::vector<real_type> import_E(shared.n_herds);
     std::vector<real_type> import_I(shared.n_herds);
     std::vector<real_type> import_R(shared.n_herds);
-    return internal_state{N, export_S, export_E, export_I, export_R, import_S, import_E, import_I, import_R};
+    bool has_exported = false;
+    return internal_state{N, export_S, export_E, export_I, export_R, import_S, import_E, import_I, import_R, has_exported};
   }
 
   // This is the bit that we'll use to do fast parameter updating, and
