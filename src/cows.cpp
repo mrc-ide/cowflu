@@ -230,10 +230,10 @@ public:
         const real_type n_IR = monty::random::binomial<real_type>(rng_state, I[j], p_IR);
         // Calculate births and (natural) deaths
         const real_type n_births = monty::random::binomial<real_type>(rng_state, S[j]+E[j]+I[j]+R[j], shared.mu);
-        const real_type n_deaths_S = monty::random::binomial<real_type>(rng_state, S[j], shared.mu);
-        const real_type n_deaths_E = monty::random::binomial<real_type>(rng_state, E[j], shared.mu);
-        const real_type n_deaths_I = monty::random::binomial<real_type>(rng_state, I[j], shared.mu);
-        const real_type n_deaths_R = monty::random::binomial<real_type>(rng_state, R[j], shared.mu);
+        const real_type n_deaths_S = monty::random::binomial<real_type>(rng_state, S[j] - n_SE, shared.mu);
+        const real_type n_deaths_E = monty::random::binomial<real_type>(rng_state, E[j] + n_SE - n_EI, shared.mu);
+        const real_type n_deaths_I = monty::random::binomial<real_type>(rng_state, I[j] + n_EI - n_IR, shared.mu);
+        const real_type n_deaths_R = monty::random::binomial<real_type>(rng_state, R[j] + n_IR, shared.mu);
 
         S_next[j] = S[j] - n_SE  + n_births - n_deaths_S;
         E_next[j] = E[j] + n_SE - n_EI  - n_deaths_E;
