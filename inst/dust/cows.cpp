@@ -87,6 +87,7 @@ public:
     size_t n_regions;
     real_type gamma;
     real_type sigma;
+    real_type mu;
     real_type beta;
     real_type alpha;
     real_type time_test;
@@ -225,10 +226,17 @@ public:
         const real_type n_SE = monty::random::binomial<real_type>(rng_state, S[j], p_SE);
         const real_type n_EI = monty::random::binomial<real_type>(rng_state, E[j], p_EI);
         const real_type n_IR = monty::random::binomial<real_type>(rng_state, I[j], p_IR);
-        S_next[j] = S[j] - n_SE;
-        E_next[j] = E[j] + n_SE - n_EI;
-        I_next[j] = I[j] + n_EI - n_IR;
-        R_next[j] = R[j] + n_IR;
+        // Calculate births and (natural) deaths
+        const real_type n_births = monty::random::binomial<real_type>(rng_state, S[j]+E[j]+I[j]+R[j], shared.mu);
+        const real_type n_deaths_S = monty::random::binomial<real_type>(rng_state, S[j], shared.mu);
+        const real_type n_deaths_E = monty::random::binomial<real_type>(rng_state, E[j], shared.mu);
+        const real_type n_deaths_I = monty::random::binomial<real_type>(rng_state, I[j], shared.mu);
+        const real_type n_deaths_R = monty::random::binomial<real_type>(rng_state, R[j], shared.mu);
+
+        S_next[j] = S[j] - n_SE  + n_births - n_deaths_S;
+        E_next[j] = E[j] + n_SE - n_EI  - n_deaths_E;
+        I_next[j] = I[j] + n_EI - n_IR  - n_deaths_I;
+        R_next[j] = R[j] + n_IR  - n_deaths_R;
 
         // Check if we have declared an outbreak in this herd, add
         // that to the region total if so.
@@ -480,6 +488,7 @@ public:
     const real_type gamma = dust2::r::read_real(pars, "gamma");
     const real_type alpha = dust2::r::read_real(pars, "alpha");
     const real_type sigma = dust2::r::read_real(pars, "sigma");
+    const real_type mu = dust2::r::read_real(pars, "mu", 0);
     const real_type dispersion = dust2::r::read_real(pars, "dispersion");
 
     cpp11::sexp r_asc_rate = pars["asc_rate"];
@@ -522,7 +531,7 @@ public:
     // dust2::r::read_real_vector(pars, n_seed, seed_herd.data(), "seed_herd", true);
     // dust2::r::read_real_vector(pars, n_seed, seed_amount.data(), "seed_amount", true);
 
-    return shared_state{n_seed, seed_time, seed_herd, seed_amount, n_herds, n_regions, gamma, sigma, beta, alpha, time_test, n_test, likelihood_choice, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, dispersion, condition_on_export, export_prob_depends_on_size, outbreak_detection};
+    return shared_state{n_seed, seed_time, seed_herd, seed_amount, n_herds, n_regions, gamma, sigma, mu, beta, alpha, time_test, n_test, likelihood_choice, region_start, herd_to_region_lookup, p_region_export, p_cow_export, n_cows_per_herd, movement_matrix, start_count, start_herd, asc_rate, dispersion, condition_on_export, export_prob_depends_on_size, outbreak_detection};
   }
 
   static internal_state build_internal(const shared_state& shared) {
@@ -546,6 +555,7 @@ public:
     shared.gamma = dust2::r::read_real(pars, "gamma", shared.gamma);
     shared.alpha = dust2::r::read_real(pars, "alpha", shared.alpha);
     shared.sigma = dust2::r::read_real(pars, "sigma", shared.sigma);
+    shared.mu = dust2::r::read_real(pars, "mu", shared.mu);
     shared.dispersion = dust2::r::read_real(pars, "dispersion", shared.dispersion);
 
     if (LENGTH(pars["asc_rate"]) == 1) {
