@@ -5,6 +5,16 @@
 [![R build status](https://github.com/mrc-ide/cowflu/workflows/R-CMD-check/badge.svg)](https://github.com/mrc-ide/cowflu/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
+This software package accompanies the manuscript "A mathematical model of H5N1 influenza transmission in US dairy cattle" (Rawson et al., 2025).
+
+The package provides a flexible interface for building SEIR meta-population models of infectious disease dynamics, which we primarily use for modelling HPAI H5N1 in US dairy cattle, as seen in our associated vignettes.
+
+The underlying model code can be found at [`inst/dust/cows.cpp`].
+
+Fitting the model, as seen in our vignettes, can make use of traditional MCMC or particle MCMC methods via the `dust2` and `monty` packages.
+
+
+
 ## Installation
 
 To install `cowflu`:
