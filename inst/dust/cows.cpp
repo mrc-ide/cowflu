@@ -227,16 +227,19 @@ public:
         const real_type n_EI = monty::random::binomial<real_type>(rng_state, E[j], p_EI);
         const real_type n_IR = monty::random::binomial<real_type>(rng_state, I[j], p_IR);
         // Calculate births and (natural) deaths
-        const real_type n_births = monty::random::binomial<real_type>(rng_state, S[j]+E[j]+I[j]+R[j], shared.mu);
-        const real_type n_deaths_S = monty::random::binomial<real_type>(rng_state, S[j] - n_SE, shared.mu);
-        const real_type n_deaths_E = monty::random::binomial<real_type>(rng_state, E[j] + n_SE - n_EI, shared.mu);
-        const real_type n_deaths_I = monty::random::binomial<real_type>(rng_state, I[j] + n_EI - n_IR, shared.mu);
-        const real_type n_deaths_R = monty::random::binomial<real_type>(rng_state, R[j] + n_IR, shared.mu);
+        const real_type n_births = monty::random::binomial<real_type>(rng_state, S[j]+E[j]+I[j]+R[j], 1 - std::exp(-shared.mu * dt));
+        const real_type n_deaths_S = monty::random::binomial<real_type>(rng_state, S[j] - n_SE, 1 - std::exp(-shared.mu * dt));
+        const real_type n_deaths_E = monty::random::binomial<real_type>(rng_state, E[j] + n_SE - n_EI, 1 - std::exp(-shared.mu * dt));
+        const real_type n_deaths_I = monty::random::binomial<real_type>(rng_state, I[j] + n_EI - n_IR, 1 - std::exp(-shared.mu * dt));
+        const real_type n_deaths_R = monty::random::binomial<real_type>(rng_state, R[j] + n_IR, 1 - std::exp(-shared.mu * dt));
 
         S_next[j] = S[j] - n_SE  + n_births - n_deaths_S;
         E_next[j] = E[j] + n_SE - n_EI  - n_deaths_E;
         I_next[j] = I[j] + n_EI - n_IR  - n_deaths_I;
         R_next[j] = R[j] + n_IR  - n_deaths_R;
+
+        // Update internal N to account for births/deaths
+        internal.N[j] = S_next[j] + E_next[j] + I_next[j] + R_next[j];
 
         // Check if we have declared an outbreak in this herd, add
         // that to the region total if so.
