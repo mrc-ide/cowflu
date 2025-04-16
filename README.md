@@ -3,6 +3,7 @@
 <!-- badges: start -->
 [![Project Status: Concept – Minimal or no implementation has been done yet, or the repository is only intended to be a limited example, demo, or proof-of-concept.](https://www.repostatus.org/badges/latest/concept.svg)](https://www.repostatus.org/#concept)
 [![R build status](https://github.com/mrc-ide/cowflu/workflows/R-CMD-check/badge.svg)](https://github.com/mrc-ide/cowflu/actions/workflows/R-CMD-check.yaml)
+[![DOI](https://zenodo.org/badge/830431643.svg)](https://doi.org/10.5281/zenodo.15228687)
 <!-- badges: end -->
 
 This software package accompanies the manuscript "A mathematical model of H5N1 influenza transmission in US dairy cattle" (Rawson et al., 2025).
